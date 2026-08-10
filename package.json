@@ -1,0 +1,10 @@
+{
+  "name": "pi-agent-config",
+  "private": true,
+  "description": "Personal pi coding agent config (~/.pi/agent)",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "exa-js": "^2.17.0",
+    "firecrawl": "^4.32.0"
+  }
+}
