@@ -1,0 +1,18 @@
+# Credentials and auth (never commit)
+auth.json
+
+# Runtime / machine-local state
+sessions/
+npm/
+git/
+trust.json
+models-store.json
+pi-debug.log
+*.log
+
+# OS / editor noise
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~
