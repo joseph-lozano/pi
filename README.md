@@ -24,7 +24,7 @@ export EXA_API_KEY=...
 |------|---------|
 | `settings.json` | Global settings |
 | `AGENTS.md` | Global agent instructions |
-| `extensions/` | Extensions (`exa`, `firecrawl`, `fast_mode`) |
+| `extensions/` | Extensions (`exa`, `firecrawl`, `fast_mode`, `footer`) |
 | `skills/` | Skills |
 | `prompts/` | Prompt templates |
 | `themes/` | Themes |
@@ -38,8 +38,17 @@ export EXA_API_KEY=...
 - **OpenAI Codex** — `service_tier: "priority"` on Codex Responses
 
 State is gitignored `fast-mode.json`. Commands: `/fast`, `/fast on|off|status`.
-Footer chip: `⚡ fast` when active on a supported model, `⚡ n/a` when enabled but
-the current model cannot use priority, hidden when off.
+The custom footer shows a nerd-font bolt when fast is on (hidden when off).
 Reload with `/reload` if the session was already running when the extension changed.
+
+### Custom footer (`footer.ts`)
+
+Always-on B1 footer (see `prototypes/footer.html`):
+
+- **Row 1:** cwd · branch · git `+/−` (numstat) · phase anim on the right  
+- **Row 2:** context ring · cache (last-turn db icon + session %) · provider · model · thinking · fast  
+- **Phases:** idle `●` · think `sand` · tool `line` (includes edits) · stream pulse `●`  
+- **Whimsy** on the working line only (spinner upright, message italic)  
+- Git refreshes after `edit`/`write` and when the agent hands back to you
 
 `auth.json`, `sessions/`, and other runtime files stay local and are gitignored.
