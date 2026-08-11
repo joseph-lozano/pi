@@ -3,5 +3,6 @@
   "theme": "dark",
   "defaultProvider": "xai",
   "defaultModel": "grok-4.5",
-  "defaultThinkingLevel": "high"
+  "defaultThinkingLevel": "high",
+  "tuiMode": "fullscreen"
 }
