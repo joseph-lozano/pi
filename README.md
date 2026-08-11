@@ -24,7 +24,8 @@ export EXA_API_KEY=...
 |------|---------|
 | `settings.json` | Global settings |
 | `AGENTS.md` | Global agent instructions |
-| `extensions/` | Extensions (`exa`, `firecrawl`, `fast_mode`, `enable_search_tools`, `footer`, `git_interceptor`) |
+| `extensions/` | Extensions (`exa`, `firecrawl`, `fast_mode`, `enable_search_tools`, `footer`, `git_interceptor`, `pi_cloak`) |
+| `cloak.json` | Secret-masking rules for `pi_cloak` (committed) |
 | `skills/` | Skills |
 | `prompts/` | Prompt templates |
 | `themes/` | Themes |
@@ -38,6 +39,13 @@ Guards agent `bash` commands that mention `git`:
 2. Blocks `--no-verify` (agent must fix hook failures or ask you).
 
 Reload with `/reload` after adding or changing the extension.
+
+### Secret cloaking (`pi_cloak.ts` + `cloak.json`)
+
+On `read` tool results, masks values matching `cloak.json` rules (`.env*`,
+`auth.json` tokens, common JSON secret keys, etc.). Does **not** cloak
+`bash`/`cat` output. Commands: `/cloak-status`. Edit `cloak.json` then
+`/reload` or start a new session.
 
 ### Search tools (`find` / `grep` / `ls`)
 
