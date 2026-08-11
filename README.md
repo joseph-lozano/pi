@@ -24,10 +24,20 @@ export EXA_API_KEY=...
 |------|---------|
 | `settings.json` | Global settings |
 | `AGENTS.md` | Global agent instructions |
-| `extensions/` | Extensions (`exa`, `firecrawl`, `fast_mode`, `enable_search_tools`, `footer`) |
+| `extensions/` | Extensions (`exa`, `firecrawl`, `fast_mode`, `enable_search_tools`, `footer`, `git_interceptor`) |
 | `skills/` | Skills |
 | `prompts/` | Prompt templates |
 | `themes/` | Themes |
+
+### Git interceptor (`git_interceptor.ts`)
+
+Guards agent `bash` commands that mention `git`:
+
+1. Prefixes `GIT_EDITOR=true`, `GIT_SEQUENCE_EDITOR=true`, `GIT_MERGE_AUTOEDIT=no`
+   so interactive editors cannot hang the tool call.
+2. Blocks `--no-verify` (agent must fix hook failures or ask you).
+
+Reload with `/reload` after adding or changing the extension.
 
 ### Search tools (`find` / `grep` / `ls`)
 
