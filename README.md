@@ -38,6 +38,8 @@ export EXA_API_KEY=...
 - **OpenAI Codex** — `service_tier: "priority"` on Codex Responses
 
 State is gitignored `fast-mode.json`. Commands: `/fast`, `/fast on|off|status`.
+Footer chip: `⚡ fast` when active on a supported model, `⚡ n/a` when enabled but
+the current model cannot use priority, hidden when off.
 Reload with `/reload` if the session was already running when the extension changed.
 
 `auth.json`, `sessions/`, and other runtime files stay local and are gitignored.

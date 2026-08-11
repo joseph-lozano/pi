@@ -137,6 +137,8 @@ function parseArgs(args: string): "toggle" | "on" | "off" | "status" | "help" {
 	return "help";
 }
 
+const STATUS_KEY = "fast-mode";
+
 function statusMessage(enabled: boolean, model: ExtensionContext["model"]): string {
 	const support = supportFor(model);
 	const ok = supportsFast(model);
@@ -157,6 +159,25 @@ function statusMessage(enabled: boolean, model: ExtensionContext["model"]): stri
 	].join(" · ");
 }
 
+/** Compact footer chip. Hidden when fast mode is off. */
+function footerStatusText(
+	enabled: boolean,
+	model: ExtensionContext["model"],
+	theme: ExtensionContext["ui"]["theme"],
+): string | undefined {
+	if (!enabled) return undefined;
+	if (supportsFast(model)) {
+		return theme.fg("accent", "⚡ fast");
+	}
+	// Enabled globally but current model cannot use priority tier.
+	return theme.fg("dim", "⚡ n/a");
+}
+
+function refreshFooterStatus(ctx: ExtensionContext, enabled: boolean): void {
+	if (!ctx.hasUI) return;
+	ctx.ui.setStatus(STATUS_KEY, footerStatusText(enabled, ctx.model, ctx.ui.theme));
+}
+
 export default function fastModeExtension(pi: ExtensionAPI) {
 	let enabled = loadConfig().enabled;
 
@@ -169,6 +190,7 @@ export default function fastModeExtension(pi: ExtensionAPI) {
 			ctx.ui.notify(`Failed to save fast mode: ${message}`, "error");
 			return;
 		}
+		refreshFooterStatus(ctx, enabled);
 		ctx.ui.notify(statusMessage(enabled, ctx.model), "info");
 	};
 
@@ -191,6 +213,7 @@ export default function fastModeExtension(pi: ExtensionAPI) {
 					setEnabled(false, ctx);
 					return;
 				case "status":
+					refreshFooterStatus(ctx, enabled);
 					ctx.ui.notify(statusMessage(enabled, ctx.model), "info");
 					return;
 				case "help":
@@ -210,6 +233,15 @@ export default function fastModeExtension(pi: ExtensionAPI) {
 					setEnabled(!enabled, ctx);
 			}
 		},
+	});
+
+	// Keep the footer chip in sync with session/model changes.
+	pi.on("session_start", async (_event, ctx) => {
+		refreshFooterStatus(ctx, enabled);
+	});
+
+	pi.on("model_select", async (_event, ctx) => {
+		refreshFooterStatus(ctx, enabled);
 	});
 
 	pi.on("before_provider_request", (event, ctx) => {
