@@ -1,5 +1,9 @@
 # Agent instructions
 
+## Tool calls
+
+Before complex tool calls, especially bash/shell, state in one sentence what you're about to do and why.
+
 ## External communications
 
 Do not create, edit, or send comments or messages in any external system—including GitHub, Notion, Slack, or similar services—without explicit human approval of the exact content in the current conversation. Before posting, present the complete proposed content and wait for sign-off. A request to investigate, review, or work on an external item does not constitute approval to communicate externally.
