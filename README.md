@@ -24,10 +24,22 @@ export EXA_API_KEY=...
 |------|---------|
 | `settings.json` | Global settings |
 | `AGENTS.md` | Global agent instructions |
-| `extensions/` | Extensions (`exa`, `firecrawl`, `fast_mode`, `footer`) |
+| `extensions/` | Extensions (`exa`, `firecrawl`, `fast_mode`, `enable_search_tools`, `footer`) |
 | `skills/` | Skills |
 | `prompts/` | Prompt templates |
 | `themes/` | Themes |
+
+### Search tools (`find` / `grep` / `ls`)
+
+Pi ships structured search tools backed by `fd`/`rg`, but defaults to only
+`read`/`bash`/`edit`/`write`. There is no `settings.json` key for this — use
+`--tools` or `setActiveTools`.
+
+`extensions/enable_search_tools.ts` enables `find`, `grep`, and `ls` on every
+`session_start` (keeps whatever else is already active). Reload with `/reload`
+if a session was already running when the extension was added.
+
+Background: `research/agent-file-search.md`.
 
 ### Fast mode (OpenAI + xAI)
 
