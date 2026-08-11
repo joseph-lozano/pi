@@ -1,0 +1,693 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PROTOTYPE — pi footer B1 (locked)</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #161b22;
+    --chrome: #21262d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --dim: #6e7681;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --red: #f85149;
+    --yellow: #d29922;
+    --purple: #bc8cff;
+    --cyan: #39d2c0;
+    --fast: #e3b341;
+    --think: #bc8cff;
+    --tool: #58a6ff;
+    --stream: #e6edf3;
+    --idle: #e6edf3;
+    --cache-cold: #6e7681;
+    --cache-warm: #58a6ff;
+    --cache-hot: #3fb950;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%;
+    background: #010409;
+    color: var(--text);
+    font: 14px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  body { display: grid; grid-template-rows: auto 1fr auto; min-height: 100%; }
+  header.banner {
+    background: #1a3d1a;
+    color: #9fef9f;
+    padding: 8px 16px;
+    font-size: 12px;
+  }
+  header.banner strong { color: #d4ffd4; }
+  main {
+    display: grid;
+    place-items: center;
+    padding: 24px 16px 130px;
+  }
+  .terminal {
+    width: var(--term-width, 980px);
+    max-width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--chrome);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 24px 80px rgba(0,0,0,.45);
+  }
+  .titlebar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--chrome);
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .dots { display: flex; gap: 6px; margin-right: 8px; }
+  .dots i { width: 10px; height: 10px; border-radius: 50%; display: block; }
+  .dots i:nth-child(1) { background: #ff5f57; }
+  .dots i:nth-child(2) { background: #febc2e; }
+  .dots i:nth-child(3) { background: #28c840; }
+  .chat { padding: 18px; min-height: 240px; color: var(--muted); }
+  .chat .user { color: var(--text); margin-bottom: 14px; }
+  .chat .user::before { content: "❯ "; color: var(--accent); }
+  .chat .assistant { color: #c9d1d9; margin-bottom: 14px; }
+  .chat .working-line {
+    margin-bottom: 10px;
+    min-height: 1.4em;
+    font-style: normal;
+  }
+  .chat .working-line .whim-spin {
+    font-style: normal;
+    font-family: Menlo, Monaco, "SF Mono", ui-monospace, monospace;
+    margin-right: 0.4em;
+  }
+  .chat .working-line .whim-text { font-style: italic; }
+  .chat .working-line.think { color: var(--think); }
+  .chat .working-line.tool { color: var(--tool); }
+  .chat .working-line.stream { color: var(--muted); }
+  .chat .working-line.idle { color: var(--dim); }
+  .editor {
+    border-top: 1px solid var(--chrome);
+    padding: 10px 14px;
+    color: var(--dim);
+    background: #0b0f14;
+  }
+  .editor .prompt { color: var(--accent); }
+  .footer-slot {
+    border-top: 1px solid var(--chrome);
+    background: #0a0e13;
+  }
+
+  @font-face {
+    font-family: "Symbols Nerd Font Mono";
+    src: url("https://cdn.jsdelivr.net/gh/ryanoasis/nerd-fonts@v3.3.0/patched-fonts/NerdFontsSymbolsOnly/SymbolsNerdFontMono-Regular.ttf") format("truetype");
+    font-display: swap;
+  }
+  .nf {
+    font-family: "Symbols Nerd Font Mono", "Symbols Nerd Font", ui-monospace, monospace;
+    font-style: normal;
+  }
+
+  .f { padding: 8px 12px; font-size: 12.5px; line-height: 1.4; }
+  .top, .bot {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    white-space: nowrap;
+  }
+  .top { color: var(--muted); margin-bottom: 3px; }
+  .bot { color: var(--text); }
+  .grow { flex: 1; min-width: 0; }
+  .dim { color: var(--dim); }
+  .accent { color: var(--accent); }
+  .green { color: var(--green); }
+  .red { color: var(--red); }
+  .purple { color: var(--purple); }
+  .fast { color: var(--fast); }
+  .mono { color: #c9d1d9; }
+  .ico { display: inline-flex; align-items: center; gap: 0.35em; }
+  .stack { display: inline-flex; align-items: center; gap: 10px; }
+  .act-slot {
+    margin-left: auto;
+    min-width: 1.5em;
+    display: inline-flex;
+    justify-content: center;
+  }
+  .act {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.25em;
+    font-size: 14px;
+    font-family: Menlo, Monaco, "SF Mono", ui-monospace, monospace;
+    font-variant-ligatures: none;
+    line-height: 1;
+  }
+  .act.think { color: var(--think); }
+  .act.tool { color: var(--tool); }
+  .act.stream, .act.idle { color: var(--idle); }
+  .act.stream { animation: none; }
+
+  .ctx {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+  }
+  .ctx-ring {
+    width: 12px; height: 12px; border-radius: 50%;
+    background: conic-gradient(var(--ring) calc(var(--pct) * 1%), #30363d 0);
+    position: relative; flex: 0 0 auto;
+  }
+  .ctx-ring::after {
+    content: "";
+    position: absolute; inset: 2.5px; border-radius: 50%;
+    background: #0a0e13;
+  }
+  .ctx.ok   { color: var(--cyan); --ring: var(--cyan); }
+  .ctx.warn { color: var(--yellow); --ring: var(--yellow); }
+  .ctx.hot  { color: var(--red); --ring: var(--red); }
+
+  .cache-emoji { font-style: normal; }
+  .cache.sess { display: inline-flex; align-items: center; gap: 0.25em; }
+  .cache.sess.good { color: var(--cache-hot); }   /* ≥70% */
+  .cache.sess.ok   { color: var(--yellow); }      /* 30–69% */
+  .cache.sess.bad  { color: var(--red); }         /* <30% */
+  .cache.turn-bust { color: var(--red); }
+  .cache.turn-hit  { color: var(--text); } /* white / default text on hit */
+  .cache.turn-bust .nf,
+  .cache.turn-hit .nf { color: inherit; }
+
+  .notes {
+    width: min(980px, 100%);
+    margin-top: 18px;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .notes h2 {
+    margin: 0 0 6px;
+    font-size: 13px;
+    color: var(--text);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .notes ul { margin: 0; padding-left: 18px; }
+  .notes code { background: #21262d; padding: 1px 5px; border-radius: 4px; color: #c9d1d9; }
+  .notes table { border-collapse: collapse; margin-top: 8px; font-size: 12px; }
+  .notes td, .notes th { border: 1px solid #30363d; padding: 4px 8px; text-align: left; }
+  .notes th { color: var(--text); }
+
+  .state {
+    position: fixed; right: 14px; bottom: 22px;
+    background: #161b22; border: 1px solid #30363d; color: var(--muted);
+    border-radius: 10px; padding: 10px 12px; font-size: 11px;
+    max-width: 300px; z-index: 50;
+  }
+  .state strong { color: var(--text); display: block; margin-bottom: 4px; }
+  .toggles { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .toggles button {
+    background: #21262d; color: var(--text); border: 1px solid #30363d;
+    border-radius: 999px; padding: 3px 8px; font: 11px/1.2 ui-monospace, monospace;
+    cursor: pointer;
+  }
+  .toggles button.on { border-color: var(--accent); color: var(--accent); }
+  .toggles button.phase-think.on { border-color: var(--think); color: var(--think); }
+  .toggles button.phase-tool.on { border-color: var(--tool); color: var(--tool); }
+  .toggles button.phase-stream.on { border-color: #e6edf3; color: #e6edf3; }
+  .toggles button.phase-idle.on { border-color: #8b949e; color: #8b949e; }
+  .width-row { margin-top: 10px; }
+  .width-row input { width: 100%; }
+</style>
+</head>
+<body>
+<header class="banner">
+  <strong>LOCKED SPEC — B1.</strong>
+  📁 cwd · sand=think · line=tools(incl edits) · stream=pulse ● ·
+  cache = red nf-database on last-turn bust + colorized session % · always-on.
+</header>
+
+<main>
+  <div class="terminal" id="term">
+    <div class="titlebar">
+      <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+      pi — locked footer prototype
+    </div>
+    <div class="chat">
+      <div class="user">build the footer to this spec</div>
+      <div class="working-line idle" id="chat-working"></div>
+      <div class="assistant">Whimsy: upright spinner + italic text. Footer cache starts in <b>last-turn bust</b> (red database + session %). Toggle “last bust” off → white database on hit. Drag width for drop order.</div>
+    </div>
+    <div class="editor"><span class="prompt">❯</span> <span class="dim">ask anything</span></div>
+    <div class="footer-slot" id="footer"></div>
+  </div>
+  <div class="notes" id="notes"></div>
+</main>
+
+<aside class="state">
+  <strong>Mock state</strong>
+  <div id="state-view"></div>
+  <div class="toggles" id="phase-toggles">
+    <button type="button" data-phase="idle" class="phase-idle">idle</button>
+    <button type="button" data-phase="think" class="phase-think on">think</button>
+    <button type="button" data-phase="tool" class="phase-tool">tool</button>
+    <button type="button" data-phase="stream" class="phase-stream">stream</button>
+  </div>
+  <div class="toggles">
+    <button type="button" data-k="fast" class="on">fast</button>
+    <button type="button" data-k="dirty" class="on">dirty git</button>
+    <button type="button" data-k="highCtx">high ctx</button>
+    <button type="button" data-k="lowCache">low session cache</button>
+    <button type="button" data-k="lastBust" class="on">last bust</button>
+    <button type="button" data-k="noCacheData">no cache data</button>
+  </div>
+  <div class="width-row">
+    <div>width <span id="width-label">980</span>px</div>
+    <input id="width" type="range" min="280" max="980" value="980" />
+  </div>
+</aside>
+
+<script>
+/**
+ * LOCKED B1 footer spec (prototype).
+ *
+ * Phases:
+ *   idle   — solid white ●
+ *   think  — sand (only while thinking, not token stream)
+ *   stream — pulse white ● (tokens streaming in)
+ *   tool   — line  (all tools including edit/write)
+ *
+ * Row 1: cwd · branch · git numstat … anim
+ * Row 2: ctx · cache … provider · model · thinking · fast(on only)
+ *
+ * Drop order:
+ *   row1: cwd, branch  (git + anim kept longest)
+ *   row2: provider, cache, fast, thinking, model  (ctx kept longest)
+ *
+ * Refresh git after edit/write tools and when agent returns to user.
+ * Ctx warn@50 hot@85. Cache = session cumulative (see notes).
+ * Always-on. Whimsy on working line only (spin upright, text italic).
+ */
+const SAMPLE = {
+  cwd: "~/Workspace/pi",
+  branch: "main",
+  provider: "xai",
+  model: "grok-4.5",
+  thinking: "high",
+  ctxPct: 42.0,
+  ctxWindow: "256k",
+  // session cumulative (summed assistant usage)
+  cacheRead: 120_000,
+  cacheWrite: 8_000,
+  input: 15_000,
+  // last turn (most recent assistant usage)
+  last: { cacheRead: 40_000, cacheWrite: 0, input: 3_000 },
+  git: { plus: 128, minus: 34 },
+  toolName: "edit",
+  whimsy: [
+    "Noodling...",
+    "Combobulating...",
+    "Petting the wild goroutines...",
+    "Memoizing the vibes for later...",
+    "Schlepping...",
+  ],
+};
+
+const NF = {
+  branch: "\ue725",   // nf-dev-git_branch
+  provider: "\uf0c2", // nf-fa-cloud
+  fast: "\uf0e7",     // nf-fa-bolt
+  folder: "\uf07b",   // nf-fa-folder
+  cache: "\uf1c0",    // nf-fa-database — cache icon (nerd, not emoji)
+};
+
+const CLI = {
+  sand: {
+    interval: 80,
+    frames: ["⠁","⠂","⠄","⡀","⡈","⡐","⡠","⣀","⣁","⣂","⣄","⣌","⣔","⣤","⣥","⣦","⣮","⣶","⣷","⣿","⡿","⠿","⢟","⠟","⡛","⠛","⠫","⢋","⠋","⠍","⡉","⠉","⠑","⠡","⢁"],
+  },
+  line: { interval: 130, frames: ["-", "\\", "|", "/"] },
+};
+
+const TICK_MS = 80;
+const state = {
+  phase: "think",
+  fast: true,
+  dirty: true,
+  highCtx: false,
+  lowCache: false,
+  lastBust: true, // on so dual cache (red db + session %) is visible immediately
+  noCacheData: false,
+  whimIdx: 0,
+  frameIdx: 0,
+  tick: 0,
+  width: 980,
+  pulse: 1,
+};
+
+const PHASES = {
+  idle: {
+    label: "idle",
+    color: "idle",
+    frames: ["●"],
+    intervalMs: 99999,
+    chat: () => "",
+  },
+  think: {
+    label: "thinking",
+    color: "think",
+    frames: CLI.sand.frames,
+    intervalMs: CLI.sand.interval,
+    chat: () => SAMPLE.whimsy[state.whimIdx % SAMPLE.whimsy.length],
+  },
+  tool: {
+    label: "tool",
+    color: "tool",
+    frames: CLI.line.frames,
+    intervalMs: CLI.line.interval,
+    chat: () => `⚙ ${SAMPLE.toolName}`,
+  },
+  stream: {
+    label: "streaming tokens",
+    color: "stream",
+    frames: ["●"],
+    intervalMs: 80,
+    chat: () => "streaming",
+  },
+};
+
+function nf(ch) { return `<span class="nf" aria-hidden="true">${ch}</span>`; }
+function esc(s) {
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+function phase() { return PHASES[state.phase]; }
+function tickEvery() { return Math.max(1, Math.round(phase().intervalMs / TICK_MS)); }
+
+function ctx() {
+  const pct = state.highCtx ? 91.2 : SAMPLE.ctxPct;
+  // locked thresholds
+  const level = pct >= 85 ? "hot" : pct >= 50 ? "warn" : "ok";
+  return { pct, window: SAMPLE.ctxWindow, level };
+}
+
+function hitPct(read, write, input) {
+  const denom = input + read + write;
+  if (!denom) return null;
+  return Math.round((read / denom) * 100);
+}
+
+/**
+ * Cache display — two signals:
+ *
+ * 1) LAST TURN (nerd database icon):
+ *    - no usage yet → hide
+ *    - cacheRead === 0 (bust) → red database
+ *    - cacheRead > 0 (hit) → white database
+ *    Note: not a true boolean — APIs report partial prefix hits.
+ *    We treat "any read tokens" as hit, "zero reads with prompt tokens" as bust.
+ *
+ * 2) SESSION cumulative % (color-coded):
+ *    hit% = sum(cacheRead) / sum(input + cacheRead + cacheWrite)
+ *    Cutoffs from production guidance (tianpan 2026, DigitalOcean case studies):
+ *      ≥70% healthy target for agent/coding workloads
+ *      30–69% degraded / watch
+ *      <30% structural problem on fixed-prefix workloads
+ *    Hide when no cache activity in session (OpenUsage pattern — avoid fake 0%).
+ */
+function cache() {
+  if (state.noCacheData) {
+    return { turn: "none", session: null };
+  }
+
+  let sRead = SAMPLE.cacheRead;
+  let sWrite = SAMPLE.cacheWrite;
+  let sInput = SAMPLE.input;
+  if (state.lowCache) { sRead = 8_000; sWrite = 12_000; sInput = 40_000; } // ~13%
+
+  let tRead = SAMPLE.last.cacheRead;
+  let tWrite = SAMPLE.last.cacheWrite;
+  let tInput = SAMPLE.last.input;
+  if (state.lastBust) { tRead = 0; tWrite = 5_000; tInput = 12_000; }
+
+  const sessionPct = hitPct(sRead, sWrite, sInput);
+  let sessionLevel = null;
+  if (sessionPct != null && (sRead > 0 || sWrite > 0)) {
+    sessionLevel = sessionPct >= 70 ? "good" : sessionPct >= 30 ? "ok" : "bad";
+  }
+
+  const turnTokens = tRead + tWrite + tInput;
+  let turn = "none";
+  if (turnTokens > 0) turn = tRead > 0 ? "hit" : "bust";
+
+  return {
+    turn, // none | hit | bust
+    session: sessionLevel == null ? null : { pct: sessionPct, level: sessionLevel },
+  };
+}
+
+function git() {
+  return state.dirty ? SAMPLE.git : { plus: 0, minus: 0 };
+}
+
+function actHtml() {
+  const p = phase();
+  let glyph = p.frames[Math.floor(state.frameIdx) % p.frames.length];
+  let style = "";
+  if (state.phase === "stream") {
+    // pulse white circle while tokens stream
+    const opacity = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(state.tick / 4));
+    style = `style="opacity:${opacity.toFixed(2)}"`;
+    glyph = "●";
+  }
+  return `<span class="act ${p.color}" title="${p.label}" ${style}>${esc(glyph)}</span>`;
+}
+
+function measure(html) {
+  // rough visible width: strip tags, count codepoints (good enough for prototype)
+  const text = html.replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<");
+  // nerd icons + emoji ~ 2 cols visually sometimes; treat as 1.2 avg fudge on non-ascii
+  let w = 0;
+  for (const ch of text) {
+    w += ch.trim() === "" ? 1 : (/[\u0000-\u00ff]/.test(ch) ? 1 : 1.5);
+  }
+  return Math.ceil(w);
+}
+
+function build() {
+  const c = ctx();
+  const k = cache();
+  const g = git();
+
+  const parts = {
+    cwd: `<span class="ico" data-id="cwd">📁 <span class="mono">${esc(SAMPLE.cwd)}</span></span>`,
+    branch: `<span class="green ico" data-id="branch">${nf(NF.branch)} ${esc(SAMPLE.branch)}</span>`,
+    git: (g.plus || g.minus)
+      ? `<span data-id="git"><span class="green">+${g.plus}</span> <span class="red">−${g.minus}</span></span>`
+      : `<span class="dim" data-id="git">clean</span>`,
+    anim: `<span class="act-slot" data-id="anim">${actHtml()}</span>`,
+    ctx: `<span class="ctx ${c.level}" data-id="ctx" title="context">
+      <span class="ctx-ring" style="--pct:${Math.min(100, c.pct)}"></span>
+      <span>${c.pct.toFixed(1)}%<span class="dim">/${c.window}</span></span>
+    </span>`,
+    cache: (() => {
+      // last-turn: red database on bust; white database on hit
+      // session: always show colorized % when we have cache activity
+      const bits = [];
+      if (k.turn === "bust") {
+        bits.push(
+          `<span class="cache turn-bust" title="last turn: cache bust (0 read tokens)">${nf(NF.cache)}</span>`,
+        );
+      } else if (k.turn === "hit") {
+        bits.push(
+          `<span class="cache turn-hit" title="last turn: cache hit">${nf(NF.cache)}</span>`,
+        );
+      }
+      if (k.session) {
+        bits.push(
+          `<span class="cache sess ${k.session.level}" title="session hit rate (Σread / Σ prompt tokens)">${k.session.pct}%</span>`,
+        );
+      }
+      if (!bits.length) return "";
+      // e.g. " 84%" — red db on bust, white db on hit
+      return `<span class="ico" data-id="cache">${bits.join("\u00a0")}</span>`;
+    })(),
+    provider: `<span class="accent ico" data-id="provider">${nf(NF.provider)} ${esc(SAMPLE.provider)}</span>`,
+    model: `<span class="mono" data-id="model">${esc(SAMPLE.model)}</span>`,
+    thinking: `<span class="purple ico" data-id="thinking">🧠 ${esc(SAMPLE.thinking)}</span>`,
+    fast: state.fast
+      ? `<span class="fast ico" data-id="fast">${nf(NF.fast)}</span>`
+      : "", // hide when off
+  };
+
+  // Drop order (first dropped → last kept)
+  // row1: cwd, branch  (then keep git, anim)
+  // row2: provider, cache, fast, thinking, model  (keep ctx)
+  const row1Order = ["cwd", "branch", "git", "anim"];
+  const row1Drop = ["cwd", "branch"]; // only these drop; git+anim sticky
+  const row2Order = ["ctx", "cache", "provider", "model", "thinking", "fast"].filter((id) => parts[id]);
+  const row2Drop = ["provider", "cache", "fast", "thinking", "model"]; // ctx sticky
+
+  const budget = Math.max(20, Math.floor(state.width / 8.2)); // ~cols
+
+  function fit(order, dropOrder, stickyRight) {
+    const visible = new Set(order.filter((id) => parts[id]));
+    const dropQ = dropOrder.filter((id) => visible.has(id));
+    const sep = ` <span class="dim">·</span> `;
+
+    function render() {
+      const ids = order.filter((id) => visible.has(id));
+      if (stickyRight && visible.has(stickyRight)) {
+        const left = ids.filter((id) => id !== stickyRight);
+        const leftHtml = left.map((id) => parts[id]).join(sep);
+        return `${leftHtml}<span class="grow"></span>${parts[stickyRight]}`;
+      }
+      // bottom: left = ctx · cache · right = provider model thinking fast
+      // right stack order fixed; drop order handled by visible set
+      const leftIds = ids.filter((id) => id === "ctx" || id === "cache");
+      const rightOrder = ["provider", "model", "thinking", "fast"];
+      const rightIds = rightOrder.filter((id) => ids.includes(id));
+      const leftHtml = leftIds.map((id) => parts[id]).join(sep);
+      const rightHtml = rightIds.map((id) => parts[id]).join(" ");
+      if (!leftHtml) return `<span class="grow"></span>${rightHtml}`;
+      if (!rightHtml) return leftHtml;
+      return `${leftHtml}<span class="grow"></span>${rightHtml}`;
+    }
+
+    let html = render();
+    let guard = 20;
+    while (measure(html) > budget && dropQ.length && guard-- > 0) {
+      visible.delete(dropQ.shift());
+      html = render();
+    }
+    return { html, visible: [...visible] };
+  }
+
+  const r1 = fit(row1Order, row1Drop, "anim");
+  const r2 = fit(row2Order, row2Drop, null);
+
+  return {
+    html: `<div class="f B1"><div class="top">${r1.html}</div><div class="bot">${r2.html}</div></div>`,
+    visible: { row1: r1.visible, row2: r2.visible },
+  };
+}
+
+function paint() {
+  const built = build();
+  document.getElementById("footer").innerHTML = built.html;
+  document.getElementById("term").style.setProperty("--term-width", state.width + "px");
+  document.getElementById("width-label").textContent = String(state.width);
+
+  const p = phase();
+  const msg = p.chat();
+  const g = p.frames[Math.floor(state.frameIdx) % p.frames.length];
+  const chat = document.getElementById("chat-working");
+  chat.className = `working-line ${p.color}`;
+  if (state.phase === "stream") {
+    const opacity = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(state.tick / 4));
+    chat.innerHTML = msg
+      ? `<span class="whim-spin" style="opacity:${opacity.toFixed(2)}">●</span><span class="whim-text">${esc(msg)}</span>`
+      : "";
+  } else {
+    chat.innerHTML = msg
+      ? `<span class="whim-spin">${esc(g)}</span><span class="whim-text">${esc(msg)}</span>`
+      : "";
+  }
+
+  const k = cache();
+  const c = ctx();
+  const sess = k.session ? `${k.session.pct}% ${k.session.level}` : "hidden";
+  document.getElementById("state-view").innerHTML = `
+    phase=<b style="color:var(--${p.color === "stream" || p.color === "idle" ? "idle" : p.color})">${state.phase}</b><br>
+    fast=${state.fast} (hidden if off)<br>
+    ctx=${c.pct.toFixed(1)}% ${c.level}<br>
+    last-turn cache=${k.turn} · session=${sess}<br>
+    shown r1: ${built.visible.row1.join(", ")}<br>
+    shown r2: ${built.visible.row2.join(", ")}`;
+
+  document.getElementById("notes").innerHTML = `
+    <h2>Locked B1</h2>
+    <ul>
+      <li><b>Row1:</b> 📁 cwd · nerd branch · git numstat (+/−) … anim alone on right</li>
+      <li><b>Row2:</b> ctx ring · cache(dual) … provider · model · 🧠 thinking · bolt (fast on only)</li>
+      <li><b>Phases:</b> idle ● · think <code>sand</code> · tool <code>line</code> (edits=tools) · stream pulse ●</li>
+      <li><b>Git:</b> numstat line counts; refresh after edit/write + agent → user</li>
+      <li><b>Ctx:</b> warn ≥50 · hot ≥85</li>
+      <li><b>Drop r1:</b> cwd → branch · <b>Drop r2:</b> provider → cache → fast → thinking → model</li>
+      <li><b>Always-on</b> · whimsy working line (spin upright, text italic)</li>
+    </ul>
+    <table>
+      <tr><th>setStatus in your setup</th><th>Notes</th></tr>
+      <tr><td><code>fast_mode</code> only</td><td>Footer will own ⚡; clear/stop that chip so it doesn’t double up under a custom footer.</td></tr>
+      <tr><td>examples only (plan-mode, ssh, …)</td><td>Not installed. Custom <code>setFooter</code> replaces default footer; other statuses only show if we render <code>footerData.getExtensionStatuses()</code>. Spec: don’t, unless you add one later.</td></tr>
+    </table>
+    <h2>Cache (both)</h2>
+    <ul>
+      <li><b>Last turn icon:</b> nerd <code>database</code> —
+        red on bust (<code>cacheRead === 0</code>), white on hit.</li>
+      <li><b>Session %:</b> <code>Σ cacheRead / Σ (input+cacheRead+cacheWrite)</code>, color-coded.</li>
+      <li>No cache activity yet → hide both (don’t show a fake 0%).</li>
+    </ul>
+    <table>
+      <tr><th>Session %</th><th>Color</th><th>Why</th></tr>
+      <tr><td>≥ 70%</td><td class="cache sess good">green</td>
+        <td>Healthy target for agent/coding workloads (prod guidance ~70%+; case studies 70–84%+).</td></tr>
+      <tr><td>30–69%</td><td class="cache sess ok">yellow</td>
+        <td>Works but degraded; watch for prompt churn / prefix busts.</td></tr>
+      <tr><td>&lt; 30%</td><td class="cache sess bad">red</td>
+        <td>Structural miss territory on fixed-prefix workloads.</td></tr>
+    </table>
+    <p style="margin:10px 0 0;color:var(--dim)">
+      Sources: tianpan “Prompt Cache Hit Rate” (70%+ achievable, &lt;30% structural alert, 60% CI floor);
+      DigitalOcean / ProjectDiscovery (7%→74% after prefix fix; 60–80% production band);
+      OpenUsage (hide ratio when no cache activity).
+      First turn is often a write/bust — red database icon is expected once, then should clear.
+    </p>`;
+
+  document.querySelectorAll("#phase-toggles button").forEach((btn) => {
+    btn.classList.toggle("on", btn.dataset.phase === state.phase);
+  });
+  document.querySelectorAll(".toggles button[data-k]").forEach((btn) => {
+    btn.classList.toggle("on", !!state[btn.dataset.k]);
+  });
+}
+
+document.querySelectorAll("#phase-toggles button").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    state.phase = btn.dataset.phase;
+    state.frameIdx = 0;
+    paint();
+  });
+});
+document.querySelectorAll(".toggles button[data-k]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    state[btn.dataset.k] = !state[btn.dataset.k];
+    paint();
+  });
+});
+document.getElementById("width").addEventListener("input", (e) => {
+  state.width = Number(e.target.value);
+  paint();
+});
+window.addEventListener("keydown", (e) => {
+  const t = e.target;
+  if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+  if (e.key === "1") state.phase = "idle";
+  if (e.key === "2") state.phase = "think";
+  if (e.key === "3") state.phase = "tool";
+  if (e.key === "4") state.phase = "stream";
+  paint();
+});
+
+setInterval(() => {
+  state.tick++;
+  if (state.tick % tickEvery() === 0) state.frameIdx++;
+  if (state.phase === "think" && state.tick % 24 === 0) state.whimIdx++;
+  paint();
+}, TICK_MS);
+
+paint();
+</script>
+</body>
+</html>
