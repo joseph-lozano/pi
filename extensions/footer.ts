@@ -17,6 +17,7 @@ import type {
 	ExtensionAPI,
 	ExtensionContext,
 	Theme,
+	ThemeColor,
 } from "@earendil-works/pi-coding-agent";
 import type { TUI } from "@earendil-works/pi-tui";
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
@@ -399,6 +400,13 @@ export default function footerExtension(pi: ExtensionAPI) {
 		}
 	};
 
+	/**
+	 * WorkingStatusIndicator always wraps the message with theme.fg("muted", …).
+	 * Nest our color inside so it overrides muted (same pattern as working-message-test).
+	 */
+	const coloredWhimsy = (theme: Theme, color: ThemeColor, text: string): string =>
+		theme.fg(color, theme.italic(text));
+
 	const syncWorkingLine = (): void => {
 		const ctx = liveCtx;
 		if (!ctx?.hasUI) return;
@@ -410,21 +418,24 @@ export default function footerExtension(pi: ExtensionAPI) {
 				ctx.ui.setWorkingIndicator();
 				return;
 			case "think":
-				ctx.ui.setWorkingMessage(theme.italic(whimsy));
+				// thinkingHigh is purple in dark theme; thinkingText is gray.
+				ctx.ui.setWorkingMessage(coloredWhimsy(theme, "thinkingHigh", whimsy));
 				ctx.ui.setWorkingIndicator({
-					frames: SAND_FRAMES.map((f) => theme.fg("thinkingText", f)),
+					frames: SAND_FRAMES.map((f) => theme.fg("thinkingHigh", f)),
 					intervalMs: SAND_INTERVAL_MS,
 				});
 				return;
 			case "tool":
-				ctx.ui.setWorkingMessage(theme.italic(`⚙ ${phase.toolName}`));
+				ctx.ui.setWorkingMessage(
+					coloredWhimsy(theme, "accent", `⚙ ${phase.toolName}`),
+				);
 				ctx.ui.setWorkingIndicator({
 					frames: LINE_FRAMES.map((f) => theme.fg("accent", f)),
 					intervalMs: LINE_INTERVAL_MS,
 				});
 				return;
 			case "stream":
-				ctx.ui.setWorkingMessage(theme.italic("streaming"));
+				ctx.ui.setWorkingMessage(coloredWhimsy(theme, "text", "streaming"));
 				ctx.ui.setWorkingIndicator({
 					frames: [
 						theme.fg("dim", "●"),
@@ -464,11 +475,16 @@ export default function footerExtension(pi: ExtensionAPI) {
 			case "idle":
 				return theme.fg("text", "●");
 			case "think":
-				return theme.fg("thinkingText", SAND_FRAMES[frameIdx % SAND_FRAMES.length]!);
+				return theme.fg("thinkingHigh", SAND_FRAMES[frameIdx % SAND_FRAMES.length]!);
 			case "tool":
 				return theme.fg("accent", LINE_FRAMES[frameIdx % LINE_FRAMES.length]!);
 			case "stream": {
-				const pulse = [theme.fg("dim", "●"), theme.fg("muted", "●"), theme.fg("text", "●"), theme.fg("muted", "●")];
+				const pulse = [
+					theme.fg("dim", "●"),
+					theme.fg("muted", "●"),
+					theme.fg("text", "●"),
+					theme.fg("muted", "●"),
+				];
 				return pulse[frameIdx % pulse.length]!;
 			}
 			default: {
