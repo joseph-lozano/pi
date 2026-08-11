@@ -7,7 +7,7 @@ npm/
 git/
 trust.json
 models-store.json
-xai-fast.json
+fast-mode.json
 pi-debug.log
 *.log
 

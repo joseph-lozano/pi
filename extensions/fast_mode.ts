@@ -1,21 +1,25 @@
 /**
- * xAI Priority Processing ("fast mode") for Grok models.
+ * Fast mode (priority service tier) for OpenAI and xAI.
  *
- * xAI exposes higher-priority scheduling via:
- *   service_tier: "priority"
- * on Chat Completions and Responses
- * (https://docs.x.ai/developers/advanced-api-usage/priority-processing).
+ * When enabled, injects `service_tier: "priority"` into supported request
+ * payloads so providers schedule with lower latency (at premium rates).
  *
- * grok-4.5 uses api=openai-responses, so this extension injects that field
- * when fast mode is enabled.
+ * Supported:
+ *   - openai        / openai-responses, openai-completions
+ *   - openai-codex  / openai-codex-responses
+ *   - xai           / openai-responses, openai-completions  (e.g. grok-4.5)
+ *
+ * Docs:
+ *   - OpenAI service tiers: https://platform.openai.com/docs/guides/priority-processing
+ *   - xAI priority processing: https://docs.x.ai/developers/advanced-api-usage/priority-processing
  *
  * Commands:
- *   /fast          toggle on ↔ off for the current xAI session model
+ *   /fast          toggle on ↔ off
  *   /fast on       enable
  *   /fast off      disable
- *   /fast status   show state
+ *   /fast status   show state for the current model
  *
- * State is persisted in ~/.pi/agent/xai-fast.json (or $PI_CODING_AGENT_DIR).
+ * State: ~/.pi/agent/fast-mode.json (gitignored runtime file)
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -27,12 +31,37 @@ import type {
 	ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
 
-const CONFIG_FILE = "xai-fast.json";
+const CONFIG_FILE = "fast-mode.json";
 const FAST_TIER = "priority";
-const SUPPORTED_APIS = new Set(["openai-responses", "openai-completions"]);
 
 type FastConfig = {
 	enabled: boolean;
+};
+
+type ModelRef = {
+	provider?: unknown;
+	api?: unknown;
+	id?: unknown;
+};
+
+type ProviderSupport = {
+	label: string;
+	apis: ReadonlySet<string>;
+};
+
+const PROVIDER_SUPPORT: Record<string, ProviderSupport> = {
+	openai: {
+		label: "OpenAI",
+		apis: new Set(["openai-responses", "openai-completions"]),
+	},
+	"openai-codex": {
+		label: "OpenAI Codex",
+		apis: new Set(["openai-codex-responses"]),
+	},
+	xai: {
+		label: "xAI",
+		apis: new Set(["openai-responses", "openai-completions"]),
+	},
 };
 
 function agentDir(): string {
@@ -61,7 +90,7 @@ function loadConfig(): FastConfig {
 			return { enabled: (parsed as FastConfig).enabled };
 		}
 	} catch {
-		// fall through to default
+		// fall through
 	}
 	return defaultConfig();
 }
@@ -76,18 +105,20 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 	return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-function modelLabel(model: ExtensionContext["model"]): string {
-	if (!model) return "no model";
-	return `${model.provider}/${model.id}`;
+function modelLabel(model: ModelRef | undefined): string {
+	if (!model?.provider || !model?.id) return "no model";
+	return `${String(model.provider)}/${String(model.id)}`;
 }
 
-function supportsXaiFast(model: ExtensionContext["model"]): boolean {
-	return (
-		Boolean(model) &&
-		model?.provider === "xai" &&
-		typeof model?.api === "string" &&
-		SUPPORTED_APIS.has(model.api)
-	);
+function supportFor(model: ModelRef | undefined): ProviderSupport | undefined {
+	if (!model || typeof model.provider !== "string") return undefined;
+	return PROVIDER_SUPPORT[model.provider];
+}
+
+function supportsFast(model: ModelRef | undefined): boolean {
+	const support = supportFor(model);
+	if (!support || typeof model?.api !== "string") return false;
+	return support.apis.has(model.api);
 }
 
 function parseArgs(args: string): "toggle" | "on" | "off" | "status" | "help" {
@@ -107,24 +138,26 @@ function parseArgs(args: string): "toggle" | "on" | "off" | "status" | "help" {
 }
 
 function statusMessage(enabled: boolean, model: ExtensionContext["model"]): string {
-	const support = supportsXaiFast(model)
-		? "supported"
-		: model?.provider === "xai"
-			? `unsupported api (${model.api ?? "unknown"})`
-			: "n/a (not xAI)";
-	const active = enabled && supportsXaiFast(model);
+	const support = supportFor(model);
+	const ok = supportsFast(model);
+	const supportLabel = ok
+		? `supported (${support?.label ?? "unknown"})`
+		: support
+			? `unsupported api (${String(model?.api ?? "unknown")}) for ${support.label}`
+			: "n/a (provider not openai/xai)";
+	const active = enabled && ok;
 	return [
-		`xAI fast mode: ${enabled ? "on" : "off"}`,
-		`model: ${modelLabel(model)} (${support})`,
+		`fast mode: ${enabled ? "on" : "off"}`,
+		`model: ${modelLabel(model)} (${supportLabel})`,
 		active
-			? `requests will send service_tier="${FAST_TIER}" (2x priority pricing when granted)`
+			? `requests will send service_tier="${FAST_TIER}"`
 			: enabled
 				? "enabled, but current model will not receive the tier"
 				: "standard scheduling",
 	].join(" · ");
 }
 
-export default function xaiFastExtension(pi: ExtensionAPI) {
+export default function fastModeExtension(pi: ExtensionAPI) {
 	let enabled = loadConfig().enabled;
 
 	const setEnabled = (next: boolean, ctx: ExtensionCommandContext): void => {
@@ -133,7 +166,7 @@ export default function xaiFastExtension(pi: ExtensionAPI) {
 			saveConfig({ enabled });
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
-			ctx.ui.notify(`Failed to save xAI fast mode: ${message}`, "error");
+			ctx.ui.notify(`Failed to save fast mode: ${message}`, "error");
 			return;
 		}
 		ctx.ui.notify(statusMessage(enabled, ctx.model), "info");
@@ -141,11 +174,17 @@ export default function xaiFastExtension(pi: ExtensionAPI) {
 
 	pi.registerCommand("fast", {
 		description:
-			"Toggle xAI Priority Processing (service_tier=priority) for Grok models like grok-4.5",
+			"Toggle priority service tier (fast mode) for OpenAI and xAI models",
 		handler: async (args, ctx) => {
 			const action = parseArgs(args ?? "");
 			switch (action) {
 				case "on":
+					if (!supportsFast(ctx.model)) {
+						ctx.ui.notify(
+							`Enabling fast mode, but ${modelLabel(ctx.model)} is not a supported OpenAI/xAI model/API.`,
+							"warning",
+						);
+					}
 					setEnabled(true, ctx);
 					return;
 				case "off":
@@ -156,16 +195,15 @@ export default function xaiFastExtension(pi: ExtensionAPI) {
 					return;
 				case "help":
 					ctx.ui.notify(
-						"Usage: /fast [on|off|status] — xAI Priority Processing for Grok (service_tier=priority)",
+						"Usage: /fast [on|off|status] — priority service_tier for OpenAI + xAI (grok-4.5, GPT, Codex)",
 						"info",
 					);
 					return;
 				case "toggle":
 				default:
-					if (!supportsXaiFast(ctx.model) && !enabled) {
-						// Turning on while on a non-xAI model is allowed (persists), but warn.
+					if (!supportsFast(ctx.model) && !enabled) {
 						ctx.ui.notify(
-							`Current model ${modelLabel(ctx.model)} is not an xAI Responses/Completions model; enabling anyway for when you switch to grok-4.5.`,
+							`Current model ${modelLabel(ctx.model)} is not a supported OpenAI/xAI model/API; enabling anyway for when you switch.`,
 							"warning",
 						);
 					}
@@ -176,10 +214,9 @@ export default function xaiFastExtension(pi: ExtensionAPI) {
 
 	pi.on("before_provider_request", (event, ctx) => {
 		if (!enabled) return;
-		if (!supportsXaiFast(ctx.model)) return;
+		if (!supportsFast(ctx.model)) return;
 		if (!isRecord(event.payload)) return;
-
-		// Only set when absent so an explicit upstream value wins.
+		// Keep an explicit upstream value if something else already set it.
 		if (event.payload.service_tier !== undefined) return;
 
 		return {

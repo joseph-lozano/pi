@@ -24,16 +24,20 @@ export EXA_API_KEY=...
 |------|---------|
 | `settings.json` | Global settings |
 | `AGENTS.md` | Global agent instructions |
-| `extensions/` | Extensions (`exa`, `firecrawl`, `xai_fast`) |
+| `extensions/` | Extensions (`exa`, `firecrawl`, `fast_mode`) |
 | `skills/` | Skills |
 | `prompts/` | Prompt templates |
 | `themes/` | Themes |
 
-### xAI fast mode
+### Fast mode (OpenAI + xAI)
 
-`extensions/xai_fast.ts` adds `/fast` for Grok Priority Processing
-(`service_tier: "priority"` on the xAI Responses/Completions APIs).
-State lives in gitignored `xai-fast.json`. Use `/fast`, `/fast on|off|status`.
-Reload with `/reload` if the session was already running when the extension was added.
+`extensions/fast_mode.ts` adds `/fast` for priority service tiers:
+
+- **xAI** (`grok-4.5`, etc.) — `service_tier: "priority"` on Responses/Completions
+- **OpenAI** — `service_tier: "priority"` on Responses/Completions
+- **OpenAI Codex** — `service_tier: "priority"` on Codex Responses
+
+State is gitignored `fast-mode.json`. Commands: `/fast`, `/fast on|off|status`.
+Reload with `/reload` if the session was already running when the extension changed.
 
 `auth.json`, `sessions/`, and other runtime files stay local and are gitignored.
