@@ -1,8 +1,11 @@
 {
   "lastChangelogVersion": "0.84.1",
   "theme": "dark",
-  "defaultProvider": "xai",
+  "defaultProvider": "cursor",
   "defaultModel": "grok-4.5",
   "defaultThinkingLevel": "high",
-  "tuiMode": "fullscreen"
+  "tuiMode": "fullscreen",
+  "packages": [
+    "npm:pi-cursor-sdk"
+  ]
 }
