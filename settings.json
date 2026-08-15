@@ -1,8 +1,8 @@
 {
   "lastChangelogVersion": "0.84.1",
-  "theme": "dark",
-  "defaultProvider": "cursor",
-  "defaultModel": "grok-4.5",
+  "theme": "dracula",
+  "defaultProvider": "xai",
+  "defaultModel": "grok-4.6",
   "defaultThinkingLevel": "high",
   "tuiMode": "fullscreen",
   "packages": [
