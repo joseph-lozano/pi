@@ -81,19 +81,5 @@ Always-on B1 footer (see `prototypes/footer.html`):
 - **Whimsy** on the working line only (spinner upright, message italic)  
 - Git refreshes after `edit`/`write` and when the agent hands back to you
 
-### Cursor SDK (`npm:pi-cursor-sdk`)
-
-Default provider is `cursor` via `settings.json` (`packages: ["npm:pi-cursor-sdk"]`).
-Install/refresh with `pi install npm:pi-cursor-sdk` (or `pi update`), then `/login` → API key → Cursor.
-
-#### Cursor SDK caches (gitignored)
-
-These live under this repo (`~/.pi/agent`) and are machine-local — do not commit them.
-
-| File | How it is generated |
-|------|---------------------|
-| `cursor-sdk-model-list.json` | Written automatically by `pi-cursor-sdk` after a live `Cursor.models.list` discovery (mode `0600`, keyed by API-key fingerprint — the key is never stored). Warm startups reuse it within the TTL (`PI_CURSOR_SDK_MODEL_CACHE_TTL_MS`, default 24h). Force a refresh with `/cursor-refresh-models`. Disable with `PI_CURSOR_SDK_DISABLE_MODEL_CACHE=1`. |
-| `cursor-sdk-context-windows.json` | Collected from live local Cursor runs (checkpoint-derived context windows). Used when refreshing package snapshots, e.g. `npm run refresh:cursor-snapshots -- --write --context-windows ~/.pi/agent/cursor-sdk-context-windows.json` inside a `pi-cursor-sdk` checkout. |
-
 `auth.json`, `sessions/`, and other runtime files stay local and are gitignored.
 

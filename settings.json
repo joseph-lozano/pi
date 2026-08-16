@@ -4,8 +4,5 @@
   "defaultProvider": "xai",
   "defaultModel": "grok-4.6",
   "defaultThinkingLevel": "high",
-  "tuiMode": "fullscreen",
-  "packages": [
-    "npm:pi-cursor-sdk"
-  ]
+  "tuiMode": "fullscreen"
 }

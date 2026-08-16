@@ -8,9 +8,6 @@ git/
 trust.json
 models-store.json
 fast-mode.json
-# Written by npm:pi-cursor-sdk (see README "Cursor SDK caches")
-cursor-sdk-model-list.json
-cursor-sdk-context-windows.json
 pi-debug.log
 *.log
 
