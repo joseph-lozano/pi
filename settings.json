@@ -3,6 +3,6 @@
   "theme": "dracula",
   "defaultProvider": "xai",
   "defaultModel": "grok-4.6",
-  "defaultThinkingLevel": "high",
+  "defaultThinkingLevel": "medium",
   "tuiMode": "fullscreen"
 }
