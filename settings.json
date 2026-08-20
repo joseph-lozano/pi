@@ -5,6 +5,45 @@
   "defaultModel": "grok-4.6",
   "defaultThinkingLevel": "medium",
   "tuiMode": "regular",
+  "subagents": {
+    "defaultModel": "openai-codex/gpt-5.6-sol",
+    "defaultThinking": "medium",
+    "agentOverrides": {
+      "delegate": {
+        "model": "openai-codex/gpt-5.6-terra",
+        "thinking": "medium"
+      },
+      "scout": {
+        "model": "openai-codex/gpt-5.6-luna",
+        "thinking": "low"
+      },
+      "researcher": {
+        "model": "openai-codex/gpt-5.6-luna",
+        "thinking": "high",
+        "tools": [
+          "read",
+          "write",
+          "exa_search",
+          "exa_fetch",
+          "firecrawl_search",
+          "firecrawl_fetch"
+        ],
+        "systemPrompt": "You are a research subagent. Investigate the assigned question and produce a concise, well-sourced brief. Start with targeted Exa searches. Use Firecrawl when classic search or an official-site query is more useful. Fetch only the strongest source URLs. Prefer primary sources, official docs, specs, source code, benchmarks, and direct evidence. Discard stale, redundant, and SEO-heavy material. Search again only when a required fact remains unresolved. Write the result to the configured output file with a direct summary, numbered findings with inline links, kept and dropped sources, remaining gaps, and confidence or decision implications. If blocked or a supervisor decision is required, use contact_supervisor as directed by the runtime bridge."
+      },
+      "reviewer": {
+        "model": "openai-codex/gpt-5.6-sol",
+        "thinking": "xhigh"
+      },
+      "worker": {
+        "model": "openai-codex/gpt-5.6-sol",
+        "thinking": "low"
+      },
+      "oracle": {
+        "model": "openai-codex/gpt-5.6-sol",
+        "thinking": "xhigh"
+      }
+    }
+  },
   "packages": [
     "npm:@plannotator/pi-extension",
     "npm:pi-subagents"
