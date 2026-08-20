@@ -3,7 +3,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { JobManager, shouldPreserveJobsOnShutdown } from "../extensions/background-jobs/manager";
-import { formatCompletionBatch } from "../extensions/background-jobs/format";
+import { elapsed, formatCompletionBatch } from "../extensions/background-jobs/format";
 import { PiJsonProjector } from "../extensions/background-jobs/pi-json";
 import type { JobRecord, JobSpec } from "../extensions/background-jobs/types";
 
@@ -144,7 +144,14 @@ describe("Pi JSON projection", () => {
 	});
 });
 
-describe("completion batch bounds", () => {
+describe("job display formatting", () => {
+	test("floors elapsed time to whole seconds", () => {
+		expect(elapsed({ startedAt: 0, finishedAt: 999 } as JobRecord)).toBe("0s");
+		expect(elapsed({ startedAt: 0, finishedAt: 1_999 } as JobRecord)).toBe("1s");
+		expect(elapsed({ startedAt: 0, finishedAt: 59_999 } as JobRecord)).toBe("59s");
+		expect(elapsed({ startedAt: 0, finishedAt: 60_999 } as JobRecord)).toBe("1m 0s");
+	});
+
 	test("bounds twenty simultaneous completion tails", () => {
 		const records: JobRecord[] = Array.from({ length: 20 }, (_, index) => ({
 			id: `job_batch_${index}`,

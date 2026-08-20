@@ -3,10 +3,9 @@ import type { JobRecord } from "./types";
 export const MODEL_TAIL_LIMIT = 12_000;
 
 export function elapsed(job: JobRecord, now = Date.now()): string {
-	const milliseconds = (job.finishedAt ?? now) - job.startedAt;
-	if (milliseconds < 1_000) return `${milliseconds}ms`;
-	if (milliseconds < 60_000) return `${(milliseconds / 1_000).toFixed(1)}s`;
-	return `${Math.floor(milliseconds / 60_000)}m ${Math.floor((milliseconds % 60_000) / 1_000)}s`;
+	const seconds = Math.max(0, Math.floor(((job.finishedAt ?? now) - job.startedAt) / 1_000));
+	if (seconds < 60) return `${seconds}s`;
+	return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
 }
 
 export function displayOutput(job: JobRecord): string {

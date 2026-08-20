@@ -20,7 +20,7 @@ export class BackgroundJobsOverlay {
 		private readonly done: (result: OverlayResult) => void,
 	) {
 		this.unsubscribe = manager.subscribe(() => requestRender());
-		this.timer = setInterval(requestRender, 1_000);
+		this.timer = setInterval(requestRender, 250);
 		this.timer.unref?.();
 	}
 
