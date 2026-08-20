@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
+import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import shakeExtension, { rewriteShakenToolResults, selectToolResults } from "../extensions/shake";
 
 function user(text: string): AgentMessage {
@@ -66,6 +69,26 @@ describe("selectToolResults", () => {
 		).toEqual([]);
 	});
 
+	test("protects skill reads through equivalent symlink paths", () => {
+		const directory = mkdtempSync(join(tmpdir(), "shake-skill-"));
+		try {
+			const skillPath = join(directory, "SKILL.md");
+			const aliasPath = join(directory, "skill-alias.md");
+			writeFileSync(skillPath, "skill instructions");
+			symlinkSync(skillPath, aliasPath);
+			const messages = [
+				assistantWithCall("skill-call", aliasPath),
+				toolResult("skill-call", "skill data".repeat(100)),
+				user("tail ".repeat(4_000)),
+			];
+			expect(
+				selectToolResults(messages, { protectedReadPaths: new Set([skillPath]), cwd: directory }).toolCallIds,
+			).toEqual([]);
+		} finally {
+			rmSync(directory, { recursive: true, force: true });
+		}
+	});
+
 	test("allows ordinary read results outside the recent tail", () => {
 		const messages = [
 			assistantWithCall("read-call", "/repo/file.ts"),
@@ -118,23 +141,30 @@ describe("extension state", () => {
 		};
 		shakeExtension(pi as never);
 
-		const shakenEntry = {
+		const legacyEntry = {
 			type: "custom",
 			customType: "shake-state",
-			data: { version: 1, toolCallIds: ["branch-a"] },
+			data: { version: 1, toolCallIds: ["legacy"] },
 		};
-		await handlers.get("session_start")?.({}, { sessionManager: { getBranch: () => [shakenEntry] } });
+		const deltaEntry = {
+			type: "custom",
+			customType: "shake-state",
+			data: { version: 2, toolCallIds: ["branch-a"] },
+		};
+		await handlers.get("session_start")?.({}, { sessionManager: { getBranch: () => [legacyEntry, deltaEntry] } });
+
+		const results = [toolResult("legacy", "old original"), toolResult("branch-a", "new original")];
+		const onBranchA = (await handlers.get("context")?.({ messages: results }, {})) as { messages: AgentMessage[] };
+		expect(JSON.stringify(onBranchA.messages)).not.toContain("original");
 
 		const result = toolResult("branch-a", "original");
-		const onBranchA = (await handlers.get("context")?.({ messages: [result] }, {})) as { messages: AgentMessage[] };
-		expect(JSON.stringify(onBranchA.messages)).not.toContain("original");
 
 		await handlers.get("session_tree")?.({}, { sessionManager: { getBranch: () => [] } });
 		const onBranchB = handlers.get("context")?.({ messages: [result] }, {});
 		expect(onBranchB).toBeUndefined();
 	});
 
-	test("persists one snapshot and makes repeated shakes a no-op", async () => {
+	test("persists deltas and leaves later results visible until the next shake", async () => {
 		const handlers = new Map<string, (event: unknown, ctx: unknown) => unknown>();
 		let command: ((args: string, ctx: unknown) => Promise<void>) | undefined;
 		const appended: unknown[] = [];
@@ -163,12 +193,26 @@ describe("extension state", () => {
 		};
 
 		await command?.("ELIDE", ctx);
+		messages.push(toolResult("later", "later".repeat(1_000)), user("new tail ".repeat(4_000)));
+
+		const beforeSecondShake = handlers.get("context")?.({ messages }, {}) as { messages: AgentMessage[] };
+		const laterBeforeSecondShake = beforeSecondShake.messages.find(
+			(message) => message.role === "toolResult" && message.toolCallId === "later",
+		);
+		const laterText = laterBeforeSecondShake?.role === "toolResult"
+			? laterBeforeSecondShake.content.find((part) => part.type === "text")?.text
+			: undefined;
+		expect(laterText).toContain("laterlater");
+
 		await command?.("", ctx);
 		await command?.("images", ctx);
 
-		expect(appended).toEqual([{ version: 1, toolCallIds: ["old"] }]);
+		expect(appended).toEqual([
+			{ version: 2, toolCallIds: ["old"] },
+			{ version: 2, toolCallIds: ["later"] },
+		]);
 		expect(notifications[0]).toContain("Shook 1 tool result");
-		expect(notifications[1]).toContain("Nothing to shake");
+		expect(notifications[1]).toContain("Shook 1 tool result");
 		expect(notifications[2]).toBe("Usage: /shake [elide]");
 	});
 });
