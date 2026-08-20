@@ -3,6 +3,7 @@
  *
  * Spec (from prototypes/footer.html):
  *   Row 1: 📁 cwd · nerd-branch · git numstat … phase anim (right)
+ *           herdr worktree: 🐑 branch (no path, no extra git-branch chip)
  *   Row 2: ctx ring · cache (last-turn db + session %) … provider · model · 🧠 · bolt
  *   Phases: idle ● · think sand · tool line (edits=tools) · stream pulse ●
  *   Whimsy on working line only (indicator upright, message italic)
@@ -166,6 +167,17 @@ function formatCwd(cwd: string): string {
 	const home = process.env.HOME;
 	if (home && cwd.startsWith(home)) return `~${cwd.slice(home.length)}`;
 	return cwd;
+}
+
+/** Branch folder under ~/.herdr/worktrees/<repo>/<branch>/... */
+function herdrWorktreeBranch(cwd: string): string | undefined {
+	const normalized = cwd.replace(/\\/g, "/");
+	const marker = "/.herdr/worktrees/";
+	const idx = normalized.indexOf(marker);
+	if (idx < 0) return undefined;
+	const rest = normalized.slice(idx + marker.length);
+	const parts = rest.split("/").filter(Boolean);
+	return parts[1];
 }
 
 function formatWindow(tokens: number): string {
@@ -520,7 +532,10 @@ export default function footerExtension(pi: ExtensionAPI) {
 						pct === null || pct === undefined ? "ok" : ctxLevel(pct);
 					const colorizeCtx = ctxColor(theme, level);
 
-					const cwdText = formatCwd(ctx.cwd);
+					const herdrBranch = herdrWorktreeBranch(ctx.cwd);
+					const cwdText = herdrBranch
+						? (branch || herdrBranch)
+						: formatCwd(ctx.cwd);
 					const thinking = ctx.thinkingLevel ?? pi.getThinkingLevel();
 					const provider = ctx.model?.provider ?? "?";
 					const model = ctx.model?.id ?? "no-model";
@@ -530,10 +545,13 @@ export default function footerExtension(pi: ExtensionAPI) {
 					// —— segment builders ——————————————————————————
 
 					const segments: Record<string, string> = {
-						cwd: `📁 ${theme.fg("muted", cwdText)}`,
-						branch: branch
-							? theme.fg("success", `${NF.branch} ${branch}`)
-							: "",
+						cwd: herdrBranch
+							? `🐑 ${theme.fg("muted", cwdText)}`
+							: `📁 ${theme.fg("muted", cwdText)}`,
+						branch:
+							herdrBranch || !branch
+								? ""
+								: theme.fg("success", `${NF.branch} ${branch}`),
 						git:
 							git.plus || git.minus
 								? `${theme.fg("success", `+${git.plus}`)} ${theme.fg("error", `−${git.minus}`)}`
