@@ -7,5 +7,9 @@
   "tuiMode": "regular",
   "packages": [
     "npm:@plannotator/pi-extension"
+  ],
+  "enabledModels": [
+    "openai-codex/gpt-5.6-sol",
+    "xai/grok-4.6"
   ]
 }
