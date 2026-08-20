@@ -40,6 +40,21 @@ Guards agent `bash` commands that mention `git`:
 
 Reload with `/reload` after adding or changing the extension.
 
+### Context shake (`shake.ts`)
+
+`/shake` masks older tool-result payloads in future ordinary agent turns while
+leaving the stored transcript and assistant tool calls intact. It protects an
+approximate 4,000-token recent tail and persists selected tool-call IDs as
+branch-local deltas, so the filtering survives `/reload`, resume, and `/tree`.
+
+This is intentionally non-destructive. Unlike omp's native command, Pi
+extensions cannot rewrite session history or create recoverable artifacts.
+Pi's default compaction and branch-summary model calls read the original stored
+entries rather than the extension's filtered context, so their summaries may
+include excerpts from shaken results. Provider caches and the session JSONL may
+also retain the original content. `/shake` is not deletion or a confidentiality
+boundary.
+
 ### Secret cloaking (`pi_cloak.ts` + `cloak.json`)
 
 On `read` tool results, masks values matching `cloak.json` rules (`.env*`,
