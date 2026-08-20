@@ -130,6 +130,139 @@ describe("rewriteShakenToolResults", () => {
 });
 
 describe("extension state", () => {
+	test("replaces automatic compaction with shake but leaves manual compaction available", async () => {
+		const handlers = new Map<string, (event: any, ctx: any) => unknown>();
+		const appended: unknown[] = [];
+		const notifications: string[] = [];
+		const pi = {
+			on(name: string, handler: (event: any, ctx: any) => unknown) {
+				handlers.set(name, handler);
+			},
+			registerCommand() {},
+			appendEntry(_type: string, data: unknown) {
+				appended.push(data);
+			},
+		};
+		shakeExtension(pi as never);
+
+		const messages = [toolResult("old", "old".repeat(1_000)), user("tail ".repeat(4_000))];
+		const ctx = {
+			cwd: "/repo",
+			sessionManager: { buildSessionContext: () => ({ messages }) },
+			ui: { notify: (message: string) => notifications.push(message) },
+		};
+
+		const automatic = await handlers.get("session_before_compact")?.({ reason: "threshold" }, ctx);
+		const manual = await handlers.get("session_before_compact")?.({ reason: "manual" }, ctx);
+
+		expect(automatic).toEqual({ cancel: true });
+		expect(manual).toBeUndefined();
+		expect(appended).toEqual([{ version: 2, toolCallIds: ["old"] }]);
+		expect(notifications).toEqual([
+			expect.stringContaining("Auto-shook 1 tool result"),
+		]);
+	});
+
+	test("retries a recoverable overflow after settling and preserves shake state across navigation", async () => {
+		const handlers = new Map<string, (event: any, ctx: any) => unknown>();
+		const commands = new Map<string, (args: string, ctx: any) => Promise<void>>();
+		const sentMessages: Array<{ content: unknown; options?: unknown }> = [];
+		const navigatedTo: string[] = [];
+		const appended: unknown[] = [];
+		const commandDispatches: Promise<void>[] = [];
+		let commandCtx: any;
+		const pi = {
+			on(name: string, handler: (event: any, ctx: any) => unknown) {
+				handlers.set(name, handler);
+			},
+			registerCommand(name: string, options: { handler: (args: string, ctx: any) => Promise<void> }) {
+				commands.set(name, options.handler);
+			},
+			appendEntry(_type: string, data: unknown) {
+				appended.push(data);
+			},
+			sendUserMessage(content: unknown, options?: { expandPromptTemplates?: boolean }) {
+				sentMessages.push({ content, options });
+				if (content === "/shake-overflow-retry" && options?.expandPromptTemplates) {
+					commandDispatches.push(commands.get("shake-overflow-retry")!("", commandCtx));
+				}
+			},
+		};
+		shakeExtension(pi as never);
+
+		const originalUser = user("retry this prompt");
+		const messages = [toolResult("old", "old".repeat(1_000)), user("tail ".repeat(4_000))];
+		const branch = [{ type: "message", id: "user-entry", message: originalUser }];
+		commandCtx = {
+			navigateTree: async (id: string) => {
+				navigatedTo.push(id);
+				await handlers.get("session_tree")?.({}, { sessionManager: { getBranch: () => [] } });
+				return { cancelled: false };
+			},
+			ui: { setEditorText() {}, notify() {} },
+		};
+
+		const eventResult = await handlers.get("session_before_compact")?.(
+			{ reason: "overflow", willRetry: true },
+			{
+				cwd: "/repo",
+				sessionManager: {
+					buildSessionContext: () => ({ messages }),
+					getBranch: () => branch,
+				},
+				ui: { notify() {} },
+			},
+		);
+
+		expect(eventResult).toEqual({ cancel: true });
+		expect(sentMessages).toEqual([]);
+
+		await handlers.get("agent_settled")?.({}, {});
+		await Promise.all(commandDispatches);
+
+		expect(navigatedTo).toEqual(["user-entry"]);
+		expect(sentMessages).toEqual([
+			{ content: "/shake-overflow-retry", options: { expandPromptTemplates: true } },
+			{ content: "retry this prompt", options: undefined },
+		]);
+		expect(appended).toEqual([
+			{ version: 2, toolCallIds: ["old"] },
+			{ version: 2, toolCallIds: ["old"] },
+		]);
+
+		const rewritten = handlers.get("context")?.({ messages: [toolResult("old", "original")] }, {}) as {
+			messages: AgentMessage[];
+		};
+		expect(JSON.stringify(rewritten.messages)).not.toContain("original");
+	});
+
+	test("still cancels automatic compaction when there is nothing to shake", async () => {
+		const handlers = new Map<string, (event: any, ctx: any) => unknown>();
+		const notifications: string[] = [];
+		const pi = {
+			on(name: string, handler: (event: any, ctx: any) => unknown) {
+				handlers.set(name, handler);
+			},
+			registerCommand() {},
+			appendEntry() {},
+		};
+		shakeExtension(pi as never);
+
+		const result = await handlers.get("session_before_compact")?.(
+			{ reason: "overflow" },
+			{
+				cwd: "/repo",
+				sessionManager: { buildSessionContext: () => ({ messages: [user("recent")] }) },
+				ui: { notify: (message: string) => notifications.push(message) },
+			},
+		);
+
+		expect(result).toEqual({ cancel: true });
+		expect(notifications).toEqual([
+			"Automatic compaction skipped, but there was nothing eligible to shake. Use /compact if more room is needed.",
+		]);
+	});
+
 	test("restores the active branch after session-tree navigation", async () => {
 		const handlers = new Map<string, (event: unknown, ctx: unknown) => unknown>();
 		const pi = {
