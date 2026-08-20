@@ -1,5 +1,6 @@
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { UserMessage } from "@earendil-works/pi-ai";
+import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { realpathSync } from "node:fs";
 import { homedir } from "node:os";
 import { resolve } from "node:path";
@@ -27,8 +28,26 @@ interface ShakeSelectionOptions {
 	protectedReadPaths?: ReadonlySet<string>;
 }
 
+type BranchEntry = ReturnType<ExtensionContext["sessionManager"]["getBranch"]>[number];
+type MessageEntry = Extract<BranchEntry, { type: "message" }>;
+type UserEntry = MessageEntry & { message: UserMessage };
+
+interface PendingOverflowRetry {
+	userEntryId: string;
+	content: UserMessage["content"];
+	toolCallIds: string[];
+}
+
 function isToolResult(message: AgentMessage): message is AgentMessage & ToolResultLike {
 	return message.role === "toolResult";
+}
+
+function findLastUserEntry(branch: ReadonlyArray<BranchEntry>): UserEntry | undefined {
+	for (let index = branch.length - 1; index >= 0; index--) {
+		const entry = branch[index];
+		if (entry.type === "message" && entry.message.role === "user") return entry as UserEntry;
+	}
+	return undefined;
 }
 
 function estimateTokens(message: AgentMessage): number {
@@ -160,9 +179,44 @@ function restoreState(entries: ReadonlyArray<unknown>): Set<string> {
 
 export default function shakeExtension(pi: ExtensionAPI) {
 	let shakenToolCallIds = new Set<string>();
+	let protectedReadPaths = new Set<string>();
+	let pendingOverflowRetry: PendingOverflowRetry | undefined;
 
 	const restoreFromBranch = (ctx: { sessionManager: { getBranch(): ReadonlyArray<unknown> } }) => {
 		shakenToolCallIds = restoreState(ctx.sessionManager.getBranch());
+	};
+
+	const applyShake = (
+		messages: AgentMessage[],
+		ctx: { cwd: string; ui: { notify(message: string, level: "info" | "warning"): void } },
+		automatic: boolean,
+	) => {
+		const selection = selectToolResults(messages, {
+			alreadyShaken: shakenToolCallIds,
+			cwd: ctx.cwd,
+			protectedReadPaths,
+		});
+		if (selection.toolCallIds.length === 0) {
+			ctx.ui.notify(
+				automatic
+					? "Automatic compaction skipped, but there was nothing eligible to shake. Use /compact if more room is needed."
+					: "Nothing to shake. The recent context tail is protected.",
+				automatic ? "warning" : "info",
+			);
+			return selection;
+		}
+
+		for (const id of selection.toolCallIds) shakenToolCallIds.add(id);
+		pi.appendEntry(STATE_TYPE, {
+			version: STATE_VERSION,
+			toolCallIds: selection.toolCallIds,
+		} satisfies PersistedShakeState);
+
+		ctx.ui.notify(
+			`${automatic ? "Auto-shook" : "Shook"} ${selection.toolCallIds.length} tool result${selection.toolCallIds.length === 1 ? "" : "s"} (~${selection.approxTokensRemoved} tokens removed from future agent-turn context).${automatic ? " Automatic compaction was skipped." : ""}`,
+			"info",
+		);
+		return selection;
 	};
 
 	pi.on("session_start", (_event, ctx) => {
@@ -171,6 +225,57 @@ export default function shakeExtension(pi: ExtensionAPI) {
 
 	pi.on("session_tree", (_event, ctx) => {
 		restoreFromBranch(ctx);
+	});
+
+	pi.on("before_agent_start", (event) => {
+		protectedReadPaths = new Set((event.systemPromptOptions.skills ?? []).map((skill) => skill.filePath));
+	});
+
+	pi.on("session_before_compact", (event, ctx) => {
+		if (event.reason === "manual") return;
+		const messages = ctx.sessionManager.buildSessionContext().messages;
+		const selection = applyShake(messages, ctx, true);
+
+		if (event.reason === "overflow" && event.willRetry && selection.toolCallIds.length > 0) {
+			const userEntry = findLastUserEntry(ctx.sessionManager.getBranch());
+			if (userEntry) {
+				pendingOverflowRetry = {
+					userEntryId: userEntry.id,
+					content: userEntry.message.content,
+					toolCallIds: selection.toolCallIds,
+				};
+			}
+		}
+		return { cancel: true };
+	});
+
+	pi.on("agent_settled", () => {
+		if (!pendingOverflowRetry) return;
+		pi.sendUserMessage("/shake-overflow-retry", { expandPromptTemplates: true });
+	});
+
+	pi.registerCommand("shake-overflow-retry", {
+		description: "Retry an overflowed turn after automatic shake",
+		handler: async (_args, ctx) => {
+			const retry = pendingOverflowRetry;
+			pendingOverflowRetry = undefined;
+			if (!retry) return;
+
+			const navigation = await ctx.navigateTree(retry.userEntryId, { summarize: false });
+			if (navigation.cancelled) {
+				ctx.ui.notify("Overflow retry canceled by session navigation", "warning");
+				return;
+			}
+
+			for (const id of retry.toolCallIds) shakenToolCallIds.add(id);
+			pi.appendEntry(STATE_TYPE, {
+				version: STATE_VERSION,
+				toolCallIds: retry.toolCallIds,
+			} satisfies PersistedShakeState);
+			ctx.ui.setEditorText("");
+			ctx.ui.notify("Retrying overflowed turn after shake", "info");
+			pi.sendUserMessage(retry.content);
+		},
 	});
 
 	pi.registerCommand("shake", {
@@ -184,29 +289,10 @@ export default function shakeExtension(pi: ExtensionAPI) {
 
 			await ctx.waitForIdle();
 			const messages = ctx.sessionManager.buildSessionContext().messages;
-			const skillPaths = new Set(
+			protectedReadPaths = new Set(
 				(ctx.getSystemPromptOptions().skills ?? []).map((skill) => skill.filePath),
 			);
-			const selection = selectToolResults(messages, {
-				alreadyShaken: shakenToolCallIds,
-				cwd: ctx.cwd,
-				protectedReadPaths: skillPaths,
-			});
-			if (selection.toolCallIds.length === 0) {
-				ctx.ui.notify("Nothing to shake. The recent context tail is protected.", "info");
-				return;
-			}
-
-			for (const id of selection.toolCallIds) shakenToolCallIds.add(id);
-			pi.appendEntry(STATE_TYPE, {
-				version: STATE_VERSION,
-				toolCallIds: selection.toolCallIds,
-			} satisfies PersistedShakeState);
-
-			ctx.ui.notify(
-				`Shook ${selection.toolCallIds.length} tool result${selection.toolCallIds.length === 1 ? "" : "s"} (~${selection.approxTokensRemoved} tokens removed from future agent-turn context).`,
-				"info",
-			);
+			applyShake(messages, ctx, false);
 		},
 	});
 

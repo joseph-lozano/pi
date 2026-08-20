@@ -47,6 +47,13 @@ leaving the stored transcript and assistant tool calls intact. It protects an
 approximate 4,000-token recent tail and persists selected tool-call IDs as
 branch-local deltas, so the filtering survives `/reload`, resume, and `/tree`.
 
+Automatic threshold and overflow compaction run the same shake operation and
+cancel native compaction. After a recoverable overflow, Pi retries the failed
+turn against the shaken context. If no older tool results are eligible, Pi
+warns that more room may require a manual `/compact` instead of retrying the
+same oversized context. The built-in `/compact [instructions]` command remains
+available and is never intercepted.
+
 This is intentionally non-destructive. Unlike omp's native command, Pi
 extensions cannot rewrite session history or create recoverable artifacts.
 Pi's default compaction and branch-summary model calls read the original stored
