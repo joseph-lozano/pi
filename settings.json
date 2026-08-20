@@ -6,6 +6,7 @@
   "defaultThinkingLevel": "medium",
   "tuiMode": "regular",
   "packages": [
-    "npm:@plannotator/pi-extension"
+    "npm:@plannotator/pi-extension",
+    "npm:pi-subagents"
   ]
 }
