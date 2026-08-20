@@ -9,7 +9,7 @@ Personal [pi](https://pi.dev) coding agent config. This repo is symlinked to `~/
 npm install
 ```
 
-That backs up any existing `~/.pi/agent`, preserves credentials/sessions, and links this repo in its place.
+The setup script installs Pi if needed, backs up any existing `~/.pi/agent`, preserves credentials/sessions, and links this repo in its place.
 
 ## Env
 
