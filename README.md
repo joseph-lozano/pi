@@ -101,6 +101,13 @@ without duplicating it. It refuses to run while the agent is busy or when the
 last turn completed normally. State stays in memory; `/reload` reconstructs the
 original user message from the session.
 
+### One-off asides (`btw/`)
+
+`/btw <question>` asks the active model a one-off question using the current
+conversation context. The answer appears in a cancellable, scrollable overlay
+and is not appended to the session, so it does not continue or alter the main
+conversation.
+
 ### Custom footer (`footer.ts`)
 
 Always-on B1 footer (see `prototypes/footer.html`):
