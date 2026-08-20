@@ -6,6 +6,17 @@ REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PI_HOME="${HOME}/.pi"
 TARGET="${PI_HOME}/agent"
 
+if command -v pi >/dev/null 2>&1; then
+  echo "Pi already installed: $(command -v pi)"
+else
+  if ! command -v npm >/dev/null 2>&1; then
+    echo "Cannot install Pi: npm is not available." >&2
+    exit 1
+  fi
+  echo "Installing Pi"
+  npm install -g --ignore-scripts @earendil-works/pi-coding-agent
+fi
+
 mkdir -p "${PI_HOME}"
 
 # Runtime / secret paths to preserve across the switch.
