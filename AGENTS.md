@@ -2,7 +2,7 @@
 
 ## Pi checkout
 
-`/Users/joseph/pi` is the source for Pi config. A request to change Pi — settings, extensions, themes, instructions, cloak rules, prompts — means edit that checkout. `~/.pi/agent` is live runtime: sessions, credentials, caches, and settings Pi mutates itself.
+`/Users/joseph/Workspace/pi` is the source for Pi config. A request to change Pi — settings, extensions, themes, instructions, cloak rules, prompts — means edit that checkout. `~/.pi/agent` is live runtime: sessions, credentials, caches, and settings Pi mutates itself.
 
 ## Tool calls
 
