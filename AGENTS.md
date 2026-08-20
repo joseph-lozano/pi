@@ -8,6 +8,10 @@
 
 Before complex tool calls, especially bash/shell, state in one sentence what you're about to do and why.
 
+## Background jobs
+
+Use the `job` tool for managed subprocesses and requests to delegate, use a subagent, or run work in the background. Start a Pi worker for delegated tasks, give it a task-fitting emoji, keep one writer per cwd, and block only when the next step needs the result.
+
 ## External communications
 
 Do not create, edit, or send comments or messages in any external system—including GitHub, Notion, Slack, or similar services—without explicit human approval of the exact content in the current conversation. Before posting, present the complete proposed content and wait for sign-off. A request to investigate, review, or work on an external item does not constitute approval to communicate externally.
