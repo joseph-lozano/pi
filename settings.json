@@ -1,8 +1,11 @@
 {
-  "lastChangelogVersion": "0.84.1",
+  "lastChangelogVersion": "0.84.2",
   "theme": "dracula",
   "defaultProvider": "xai",
   "defaultModel": "grok-4.6",
   "defaultThinkingLevel": "medium",
-  "tuiMode": "fullscreen"
+  "tuiMode": "regular",
+  "packages": [
+    "npm:@plannotator/pi-extension"
+  ]
 }
