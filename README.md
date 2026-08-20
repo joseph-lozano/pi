@@ -71,6 +71,14 @@ State is gitignored `fast-mode.json`. Commands: `/fast`, `/fast on|off|status`.
 The custom footer shows a nerd-font bolt when fast is on (hidden when off).
 Reload with `/reload` if the session was already running when the extension changed.
 
+### Retry failed turns (`retry.ts`)
+
+`extensions/retry.ts` adds `/retry`. After a provider error or an aborted leaf,
+it branches before the failed response and retries the original user message
+without duplicating it. It refuses to run while the agent is busy or when the
+last turn completed normally. State stays in memory; `/reload` reconstructs the
+original user message from the session.
+
 ### Custom footer (`footer.ts`)
 
 Always-on B1 footer (see `prototypes/footer.html`):
