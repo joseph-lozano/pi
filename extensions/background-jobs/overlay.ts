@@ -1,6 +1,7 @@
 import type { Theme } from "@earendil-works/pi-coding-agent";
-import { matchesKey, truncateToWidth } from "@earendil-works/pi-tui";
+import { matchesKey, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import { displayOutput, elapsed } from "./format";
+import { jobIdentity } from "./profiles";
 import type { JobManager } from "./manager";
 import type { JobRecord } from "./types";
 
@@ -58,8 +59,9 @@ export class BackgroundJobsOverlay {
 		const th = this.theme;
 		const jobs = this.visibleJobs();
 		this.selected = Math.min(this.selected, Math.max(0, jobs.length - 1));
-		const line = (text = "") => truncateToWidth(text, Math.max(1, width));
-		const lines = [line(th.fg("accent", th.bold("Background jobs")))];
+		const innerWidth = Math.max(1, width - 2);
+		const line = (text = "") => truncateToWidth(text, innerWidth);
+		const lines: string[] = [];
 
 		const listRows: string[] = [];
 		if (jobs.length === 0) {
@@ -74,8 +76,9 @@ export class BackgroundJobsOverlay {
 				const selected = index === this.selected;
 				const icon = job.status === "running" ? "●" : job.status === "completed" ? "✓" : job.status === "failed" ? "✗" : job.status === "stopped" ? "■" : "○";
 				const color = job.status === "failed" ? "error" : job.status === "completed" ? "success" : job.status === "running" ? "warning" : "muted";
+				const identity = jobIdentity(job.spec.profile, job.spec.kind);
 				const description = job.spec.kind === "shell" ? job.spec.command : job.spec.prompt;
-				const row = `${selected ? "›" : " "} ${icon} ${job.id} ${job.spec.kind} ${elapsed(job)}  ${(description ?? "").replace(/\s+/g, " ")}`;
+				const row = `${selected ? "›" : " "} ${icon} ${identity.icon} ${job.id} ${identity.label} ${elapsed(job)}  ${(description ?? "").replace(/\s+/g, " ")}`;
 				listRows.push(line(selected ? th.bg("selectedBg", th.fg(color, row)) : th.fg(color, row)));
 			}
 			if (end < jobs.length) listRows.push(line(th.fg("dim", `  ↓ ${jobs.length - end} later job(s)`)));
@@ -83,20 +86,29 @@ export class BackgroundJobsOverlay {
 		while (listRows.length < 8) listRows.push("");
 		lines.push(...listRows.slice(0, 8));
 
-		lines.push(line(th.fg("borderMuted", "─".repeat(Math.max(1, width)))));
+		lines.push(line(th.fg("borderMuted", "─".repeat(innerWidth))));
 		const selectedJob = jobs[this.selected];
 		if (selectedJob) {
 			lines.push(line(`${th.fg("accent", selectedJob.id)}  ${th.fg("muted", selectedJob.logPath)}`));
 			const tool = selectedJob.progress?.currentTool ? ` • tool ${selectedJob.progress.currentTool}` : "";
-			lines.push(line(th.fg("dim", `${selectedJob.status} • ${selectedJob.spec.kind} • ${elapsed(selectedJob)}${tool}`)));
-			const outputRows = displayOutput(selectedJob).split("\n").slice(-9).map((outputLine) => line(th.fg("toolOutput", outputLine)));
-			while (outputRows.length < 9) outputRows.push("");
+			const identity = jobIdentity(selectedJob.spec.profile, selectedJob.spec.kind);
+			lines.push(line(th.fg("dim", `${selectedJob.status} • ${identity.icon} ${identity.label} • ${elapsed(selectedJob)}${tool}`)));
+			const outputRows = displayOutput(selectedJob).split("\n").slice(-8).map((outputLine) => line(th.fg("toolOutput", outputLine)));
+			while (outputRows.length < 8) outputRows.push("");
 			lines.push(...outputRows);
 		} else {
-			lines.push(line(th.fg("dim", "No job selected.")), "", ...Array<string>(9).fill(""));
+			lines.push(line(th.fg("dim", "No job selected.")), "", ...Array<string>(8).fill(""));
 		}
 		lines.push(line(th.fg("dim", "j/k or ↑/↓ select • s stop • c clear • l log • a all history • esc close")));
-		return lines;
+
+		const title = " Background jobs ";
+		const top = th.fg("borderMuted", `╭─${title}${"─".repeat(Math.max(0, width - visibleWidth(title) - 3))}╮`);
+		const framed = lines.map((content) => {
+			const padding = " ".repeat(Math.max(0, innerWidth - visibleWidth(content)));
+			return `${th.fg("borderMuted", "│")}${content}${padding}${th.fg("borderMuted", "│")}`;
+		});
+		const bottom = th.fg("borderMuted", `╰${"─".repeat(innerWidth)}╯`);
+		return [top, ...framed, bottom];
 	}
 
 	invalidate(): void {}

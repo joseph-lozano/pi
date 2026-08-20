@@ -1,3 +1,4 @@
+import { jobIdentity } from "./profiles";
 import type { JobRecord } from "./types";
 
 export const MODEL_TAIL_LIMIT = 12_000;
@@ -19,9 +20,10 @@ export function displayOutput(job: JobRecord): string {
 }
 
 export function formatJob(job: JobRecord): string {
+	const identity = jobIdentity(job.spec.profile, job.spec.kind);
 	const lines = [
 		`Job ${job.id}: ${job.status}`,
-		`Kind: ${job.spec.kind}`,
+		`Kind: ${identity.icon} ${identity.label}`,
 		`Elapsed: ${elapsed(job)}`,
 		`CWD: ${job.spec.cwd}`,
 	];
@@ -57,14 +59,17 @@ function boundedTail(text: string, bytes: number): string {
 
 export function formatCompletionBatch(jobs: JobRecord[]): string {
 	const title = `Background job completion${jobs.length === 1 ? "" : "s"}:`;
-	const headers = jobs.map((job) => [
-		`Job ${job.id}: ${job.status}`,
-		`Kind: ${job.spec.kind}`,
-		`Elapsed: ${elapsed(job)}`,
-		job.exitCode === undefined ? undefined : `Exit code: ${job.exitCode}`,
-		job.error ? `Error: ${boundedTail(job.error, 500)}` : undefined,
-		`Log: ${boundedTail(job.logPath, 1_000)}`,
-	].filter(Boolean).join("\n"));
+	const headers = jobs.map((job) => {
+		const identity = jobIdentity(job.spec.profile, job.spec.kind);
+		return [
+			`Job ${job.id}: ${job.status}`,
+			`Kind: ${identity.icon} ${identity.label}`,
+			`Elapsed: ${elapsed(job)}`,
+			job.exitCode === undefined ? undefined : `Exit code: ${job.exitCode}`,
+			job.error ? `Error: ${boundedTail(job.error, 500)}` : undefined,
+			`Log: ${boundedTail(job.logPath, 1_000)}`,
+		].filter(Boolean).join("\n");
+	});
 	const fixedBytes = Buffer.byteLength(title) + 2 + headers.reduce((sum, header) => sum + Buffer.byteLength(header) + 24, 0);
 	const outputBudget = Math.max(256, Math.floor((BATCH_LIMIT - fixedBytes) / Math.max(1, jobs.length)));
 	const segments = jobs.map((job, index) => `${headers[index]}\nOutput tail:\n${boundedTail(displayOutput(job), outputBudget)}`);

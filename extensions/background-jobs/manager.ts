@@ -3,6 +3,7 @@ import { createWriteStream, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { PiJsonProjector } from "./pi-json";
+import { getPiProfile } from "./profiles";
 import type { JobEvent, JobOwner, JobRecord, JobSpec, PersistedJobRecord } from "./types";
 
 const DEFAULT_TAIL_BYTES = 24 * 1024;
@@ -51,6 +52,23 @@ export function getPiInvocation(args: string[]): { command: string; args: string
 	const executable = basename(process.execPath).toLowerCase();
 	if (!/^(node|bun)(\.exe)?$/.test(executable)) return { command: process.execPath, args };
 	return { command: "pi", args };
+}
+
+export function buildPiArgs(spec: JobSpec): string[] {
+	const args = ["--mode", "json", "-p", "--no-session", "--no-extensions"];
+	const profile = spec.profile ? getPiProfile(spec.profile) : undefined;
+	if (profile) {
+		args.push("--no-skills");
+		for (const extension of profile.extensions) args.push("--extension", extension);
+		args.push("--tools", profile.tools.join(","));
+		args.push("--append-system-prompt", profile.systemPrompt);
+	}
+	const model = spec.model ?? profile?.model;
+	const thinking = spec.thinking ?? profile?.thinking;
+	if (model) args.push("--model", model);
+	if (thinking) args.push("--thinking", thinking);
+	args.push(spec.prompt ?? "");
+	return args;
 }
 
 export class JobManager {
@@ -120,7 +138,7 @@ export class JobManager {
 		};
 		this.jobs.set(id, job);
 
-		const args = spec.kind === "pi" ? this.piArgs(spec) : ["-lc", spec.command ?? ""];
+		const args = spec.kind === "pi" ? buildPiArgs(spec) : ["-lc", spec.command ?? ""];
 		const invocation = spec.kind === "pi" ? this.piInvocation(args) : { command: "/bin/sh", args };
 		const log = createWriteStream(logPath, { flags: "a", mode: 0o600 });
 		const output = new ByteTail(this.outputTailBytes);
@@ -204,14 +222,6 @@ export class JobManager {
 			resolve(job);
 		}
 		return job;
-	}
-
-	private piArgs(spec: JobSpec): string[] {
-		const args = ["--mode", "json", "-p", "--no-session", "--no-extensions"];
-		if (spec.model) args.push("--model", spec.model);
-		if (spec.thinking) args.push("--thinking", spec.thinking);
-		args.push(spec.prompt ?? "");
-		return args;
 	}
 
 	private refresh(job: JobRecord, state: RuntimeJob): void {

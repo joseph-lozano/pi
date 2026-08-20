@@ -1,6 +1,8 @@
 export type JobKind = "shell" | "pi";
 export type LaunchMode = "blocking" | "background";
 export type WakePolicy = "always" | "never" | "on-failure";
+export type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
+export type PiProfileName = "scout" | "researcher" | "oracle" | "worker";
 export type JobStatus = "queued" | "running" | "completed" | "failed" | "stopped";
 export type DeliveryState = "pending" | "claimed" | "injected" | "none";
 
@@ -30,8 +32,9 @@ export interface JobSpec {
 	cwd: string;
 	command?: string;
 	prompt?: string;
+	profile?: PiProfileName;
 	model?: string;
-	thinking?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
+	thinking?: ThinkingLevel;
 }
 
 export interface JobOwner {
