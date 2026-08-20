@@ -10,7 +10,7 @@ Before complex tool calls, especially bash/shell, state in one sentence what you
 
 ## Background jobs
 
-Use the `job` tool for managed subprocesses and requests to delegate, use a subagent, or run work in the background. Route codebase reconnaissance to `scout`, web research to `researcher`, difficult technical advice to `oracle`, and focused implementation to `worker`; keep one writer per cwd and block only when the next step needs the result.
+Use the `job` tool for managed subprocesses and requests to delegate, use a subagent, or run work in the background. Start a Pi worker for delegated tasks, give it a task-fitting emoji, keep one writer per cwd, and block only when the next step needs the result.
 
 ## External communications
 

@@ -3,7 +3,7 @@ import { createWriteStream, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { PiJsonProjector } from "./pi-json";
-import { getPiProfile } from "./profiles";
+import { getWorkerConfig } from "./worker";
 import type { JobEvent, JobOwner, JobRecord, JobSpec, PersistedJobRecord } from "./types";
 
 const DEFAULT_TAIL_BYTES = 24 * 1024;
@@ -55,18 +55,13 @@ export function getPiInvocation(args: string[]): { command: string; args: string
 }
 
 export function buildPiArgs(spec: JobSpec): string[] {
-	const args = ["--mode", "json", "-p", "--no-session", "--no-extensions"];
-	const profile = spec.profile ? getPiProfile(spec.profile) : undefined;
-	if (profile) {
-		args.push("--no-skills");
-		for (const extension of profile.extensions) args.push("--extension", extension);
-		args.push("--tools", profile.tools.join(","));
-		args.push("--append-system-prompt", profile.systemPrompt);
-	}
-	const model = spec.model ?? profile?.model;
-	const thinking = spec.thinking ?? profile?.thinking;
-	if (model) args.push("--model", model);
-	if (thinking) args.push("--thinking", thinking);
+	const worker = getWorkerConfig();
+	const args = ["--mode", "json", "-p", "--no-session", "--no-extensions", "--no-skills"];
+	for (const extension of worker.extensions) args.push("--extension", extension);
+	args.push("--tools", worker.tools.join(","));
+	args.push("--append-system-prompt", worker.systemPrompt);
+	if (spec.model) args.push("--model", spec.model);
+	if (spec.thinking) args.push("--thinking", spec.thinking);
 	args.push(spec.prompt ?? "");
 	return args;
 }

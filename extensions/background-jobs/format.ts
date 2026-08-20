@@ -1,4 +1,4 @@
-import { jobIdentity } from "./profiles";
+import { jobIdentity } from "./worker";
 import type { JobRecord } from "./types";
 
 export const MODEL_TAIL_LIMIT = 12_000;
@@ -20,7 +20,7 @@ export function displayOutput(job: JobRecord): string {
 }
 
 export function formatJob(job: JobRecord): string {
-	const identity = jobIdentity(job.spec.profile, job.spec.kind);
+	const identity = jobIdentity(job.spec.emoji, job.spec.kind);
 	const lines = [
 		`Job ${job.id}: ${job.status}`,
 		`Kind: ${identity.icon} ${identity.label}`,
@@ -60,7 +60,7 @@ function boundedTail(text: string, bytes: number): string {
 export function formatCompletionBatch(jobs: JobRecord[]): string {
 	const title = `Background job completion${jobs.length === 1 ? "" : "s"}:`;
 	const headers = jobs.map((job) => {
-		const identity = jobIdentity(job.spec.profile, job.spec.kind);
+		const identity = jobIdentity(job.spec.emoji, job.spec.kind);
 		return [
 			`Job ${job.id}: ${job.status}`,
 			`Kind: ${identity.icon} ${identity.label}`,

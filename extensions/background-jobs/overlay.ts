@@ -1,7 +1,7 @@
 import type { Theme } from "@earendil-works/pi-coding-agent";
 import { matchesKey, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import { displayOutput, elapsed } from "./format";
-import { jobIdentity } from "./profiles";
+import { jobIdentity } from "./worker";
 import type { JobManager } from "./manager";
 import type { JobRecord } from "./types";
 
@@ -76,7 +76,7 @@ export class BackgroundJobsOverlay {
 				const selected = index === this.selected;
 				const icon = job.status === "running" ? "●" : job.status === "completed" ? "✓" : job.status === "failed" ? "✗" : job.status === "stopped" ? "■" : "○";
 				const color = job.status === "failed" ? "error" : job.status === "completed" ? "success" : job.status === "running" ? "warning" : "muted";
-				const identity = jobIdentity(job.spec.profile, job.spec.kind);
+				const identity = jobIdentity(job.spec.emoji, job.spec.kind);
 				const description = job.spec.kind === "shell" ? job.spec.command : job.spec.prompt;
 				const row = `${selected ? "›" : " "} ${icon} ${identity.icon} ${job.id} ${identity.label} ${elapsed(job)}  ${(description ?? "").replace(/\s+/g, " ")}`;
 				listRows.push(line(selected ? th.bg("selectedBg", th.fg(color, row)) : th.fg(color, row)));
@@ -91,7 +91,7 @@ export class BackgroundJobsOverlay {
 		if (selectedJob) {
 			lines.push(line(`${th.fg("accent", selectedJob.id)}  ${th.fg("muted", selectedJob.logPath)}`));
 			const tool = selectedJob.progress?.currentTool ? ` • tool ${selectedJob.progress.currentTool}` : "";
-			const identity = jobIdentity(selectedJob.spec.profile, selectedJob.spec.kind);
+			const identity = jobIdentity(selectedJob.spec.emoji, selectedJob.spec.kind);
 			lines.push(line(th.fg("dim", `${selectedJob.status} • ${identity.icon} ${identity.label} • ${elapsed(selectedJob)}${tool}`)));
 			const outputRows = displayOutput(selectedJob).split("\n").slice(-8).map((outputLine) => line(th.fg("toolOutput", outputLine)));
 			while (outputRows.length < 8) outputRows.push("");

@@ -6,7 +6,7 @@ import { Type } from "typebox";
 import { formatCompletionBatch, formatJob } from "./format";
 import { JobManager, shouldPreserveJobsOnShutdown } from "./manager";
 import { BackgroundJobsOverlay } from "./overlay";
-import { jobIdentity, resolveProfileRuntime } from "./profiles";
+import { jobIdentity, resolveWorkerRuntime } from "./worker";
 import type { JobRecord, JobSpec, PersistedJobRecord } from "./types";
 
 const ENTRY_TYPE = "background-job-record";
@@ -22,7 +22,7 @@ export function getBackgroundJobManager(): JobManager {
 }
 
 function summary(job: JobRecord): string {
-	const identity = jobIdentity(job.spec.profile, job.spec.kind);
+	const identity = jobIdentity(job.spec.emoji, job.spec.kind);
 	return `${job.id}  ${job.status}  ${identity.icon} ${identity.label}  ${job.logPath}`;
 }
 
@@ -120,17 +120,17 @@ export default function backgroundJobsExtension(pi: ExtensionAPI) {
 	pi.registerTool({
 		name: "job",
 		label: "Job",
-		description: "Supervise session-owned shell or one-shot Pi subprocess jobs. Pi jobs may use the scout, researcher, oracle, or worker profile. Actions: start, wait, status, stop. Background starts return a stable job ID; wait claims completion so it is delivered exactly once. Output is bounded and complete output is written to the returned log path.",
-		promptSnippet: "Start, wait for, inspect, or stop managed background jobs and one-shot Pi profiles",
+		description: "Supervise session-owned shell or one-shot Pi worker jobs. Actions: start, wait, status, stop. Pi workers inherit the parent model and thinking level unless overridden. Give each Pi worker a task-fitting emoji, for example 🔍 investigation, 📚 research, 🐛 debugging, 🧪 testing, 🛠️ implementation, or ✍️ writing. Any emoji is accepted. Background starts return a stable job ID; wait claims completion so it is delivered exactly once. Output is bounded and complete output is written to the returned log path.",
+		promptSnippet: "Start, wait for, inspect, or stop managed background jobs and one-shot Pi workers",
 		promptGuidelines: [
 			"Use job for managed long-running shell work or an isolated one-shot Pi task when the parent should remain responsive.",
-			"Use profile scout for fast read-only codebase reconnaissance, researcher for sourced web research, oracle for deep read-only technical advice, and worker for focused implementation with Grok 4.6 and the parent thinking level.",
+			"For a Pi worker, choose an emoji that makes its task recognizable in /bg. Suggestions: 🔍 investigation, 📚 research, 🐛 debugging, 🧪 testing, 🛠️ implementation, ✍️ writing.",
 		],
 		parameters: Type.Object({
 			action: StringEnum(["start", "wait", "status", "stop"] as const),
 			id: Type.Optional(Type.String({ description: "Stable job ID for wait, status, or stop" })),
-			kind: Type.Optional(StringEnum(["shell", "pi"] as const, { description: "Job kind for start; profile implies pi" })),
-			profile: Type.Optional(StringEnum(["scout", "researcher", "oracle", "worker"] as const, { description: "Named one-shot Pi profile" })),
+			kind: Type.Optional(StringEnum(["shell", "pi"] as const, { description: "Job kind for start; default shell" })),
+			emoji: Type.Optional(Type.String({ description: "Task-fitting display emoji for a Pi worker; default 🛠️" })),
 			mode: Type.Optional(StringEnum(["blocking", "background"] as const, { description: "Launch mode; default background" })),
 			wake: Type.Optional(StringEnum(["always", "never", "on-failure"] as const, { description: "Background completion wake policy; default always" })),
 			command: Type.Optional(Type.String({ description: "Shell command for a shell job" })),
@@ -169,15 +169,16 @@ export default function backgroundJobsExtension(pi: ExtensionAPI) {
 				return { content: [{ type: "text" as const, text: formatJob(job) }], details: { job } };
 			}
 
-			const kind = params.profile ? "pi" : params.kind ?? "shell";
-			if (params.profile && params.kind === "shell") return { content: [{ type: "text" as const, text: "A named profile is a Pi job and cannot use kind shell." }], details: {} };
+			const kind = params.kind ?? "shell";
 			if (kind === "shell" && !params.command?.trim()) return { content: [{ type: "text" as const, text: "A shell start requires command." }], details: {} };
+			if (kind === "shell" && params.emoji) return { content: [{ type: "text" as const, text: "Emoji is only available for Pi worker jobs." }], details: {} };
 			if (kind === "pi" && !params.prompt?.trim()) return { content: [{ type: "text" as const, text: "A Pi start requires prompt." }], details: {} };
-			const runtime = resolveProfileRuntime(
-				params.profile,
-				{ model: params.model, thinking: params.thinking },
-				{ model: ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : undefined, thinking: ctx.thinkingLevel },
-			);
+			const runtime = kind === "pi"
+				? resolveWorkerRuntime(
+					{ model: params.model, thinking: params.thinking },
+					{ model: ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : undefined, thinking: ctx.thinkingLevel },
+				)
+				: { model: params.model, thinking: params.thinking };
 			const spec: JobSpec = {
 				kind,
 				mode: params.mode ?? "background",
@@ -185,7 +186,7 @@ export default function backgroundJobsExtension(pi: ExtensionAPI) {
 				cwd: resolve(ctx.cwd, params.cwd ?? ctx.cwd),
 				command: params.command,
 				prompt: params.prompt,
-				profile: params.profile,
+				emoji: params.emoji,
 				model: runtime.model,
 				thinking: runtime.thinking,
 			};
@@ -204,8 +205,8 @@ export default function backgroundJobsExtension(pi: ExtensionAPI) {
 			}
 		},
 		renderCall(args, theme) {
-			const profile = args.profile ? ` ${args.profile}` : "";
-			return new Text(theme.fg("toolTitle", theme.bold(`job ${args.action}${profile}`)) + (args.id ? ` ${theme.fg("accent", args.id)}` : ""), 0, 0);
+			const emoji = args.emoji ? ` ${args.emoji}` : "";
+			return new Text(theme.fg("toolTitle", theme.bold(`job ${args.action}${emoji}`)) + (args.id ? ` ${theme.fg("accent", args.id)}` : ""), 0, 0);
 		},
 	});
 

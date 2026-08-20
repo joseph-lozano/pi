@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { buildPiArgs, JobManager, shouldPreserveJobsOnShutdown } from "../extensions/background-jobs/manager";
 import { elapsed, formatCompletionBatch } from "../extensions/background-jobs/format";
 import { PiJsonProjector } from "../extensions/background-jobs/pi-json";
-import { jobIdentity, resolveProfileRuntime } from "../extensions/background-jobs/profiles";
+import { jobIdentity, resolveWorkerRuntime } from "../extensions/background-jobs/worker";
 import type { JobRecord, JobSpec } from "../extensions/background-jobs/types";
 
 const roots: string[] = [];
@@ -99,69 +99,38 @@ describe("JobManager lifecycle and delivery", () => {
 	});
 });
 
-describe("named Pi profiles", () => {
-	test("builds constrained scout and oracle invocations", () => {
-		for (const [profile, model, thinking] of [
-			["scout", "openai-codex/gpt-5.6-luna", "high"],
-			["oracle", "openai-codex/gpt-5.6-sol", "xhigh"],
-		] as const) {
-			const args = buildPiArgs({ kind: "pi", profile, mode: "background", wake: "always", cwd: process.cwd(), prompt: "inspect" });
-			expect(args).toContain("--no-extensions");
-			expect(args).toContain("--no-skills");
-			expect(args.slice(args.indexOf("--tools"), args.indexOf("--tools") + 2)).toEqual(["--tools", "read,grep,find,ls"]);
-			expect(args.slice(args.indexOf("--model"), args.indexOf("--model") + 2)).toEqual(["--model", model]);
-			expect(args.slice(args.indexOf("--thinking"), args.indexOf("--thinking") + 2)).toEqual(["--thinking", thinking]);
-			expect(args.join(" ")).not.toContain("background-jobs/index.ts");
-		}
-	});
-
-	test("worker defaults to Grok 4.6, inherits thinking, and allows overrides", () => {
-		expect(resolveProfileRuntime("worker", {}, { model: "parent/model", thinking: "high" })).toEqual({
-			model: "xai/grok-4.6",
-			thinking: "high",
-		});
-		expect(resolveProfileRuntime("worker", { model: "override/model", thinking: "low" }, { model: "parent/model", thinking: "high" })).toEqual({
-			model: "override/model",
-			thinking: "low",
-		});
-		const runtime = resolveProfileRuntime("worker", {}, { model: "parent/model", thinking: "high" });
+describe("Pi worker", () => {
+	test("uses one general worker with local and web tools", () => {
+		const runtime = resolveWorkerRuntime({}, { model: "parent/model", thinking: "high" });
 		const args = buildPiArgs({
 			kind: "pi",
-			profile: "worker",
 			mode: "blocking",
 			wake: "never",
 			cwd: process.cwd(),
-			prompt: "implement",
+			prompt: "investigate and fix",
 			...runtime,
 		});
-		expect(args.slice(args.indexOf("--tools"), args.indexOf("--tools") + 2)).toEqual([
-			"--tools",
-			"read,bash,edit,write,grep,find,ls",
-		]);
-		expect(args.slice(args.indexOf("--model"), args.indexOf("--model") + 2)).toEqual(["--model", "xai/grok-4.6"]);
-		expect(jobIdentity("worker", "pi")).toEqual({ icon: "🛠️", label: "worker" });
-	});
-
-	test("loads only researcher web extensions and allows explicit model overrides", () => {
-		const args = buildPiArgs({
-			kind: "pi",
-			profile: "researcher",
-			mode: "blocking",
-			wake: "never",
-			cwd: process.cwd(),
-			prompt: "research",
-			model: "provider/custom",
-			thinking: "low",
-		});
 		const extensions = args.flatMap((arg, index) => args[index - 1] === "--extension" ? [arg] : []);
+		expect(args).toContain("--no-extensions");
+		expect(args).toContain("--no-skills");
 		expect(extensions.map((path) => path.split("/").pop())).toEqual(["exa.ts", "firecrawl.ts"]);
 		expect(args.slice(args.indexOf("--tools"), args.indexOf("--tools") + 2)).toEqual([
 			"--tools",
-			"read,write,exa_search,exa_fetch,firecrawl_search,firecrawl_fetch",
+			"read,bash,edit,write,grep,find,ls,exa_search,exa_fetch,firecrawl_search,firecrawl_fetch",
 		]);
-		expect(args.slice(args.indexOf("--model"), args.indexOf("--model") + 2)).toEqual(["--model", "provider/custom"]);
-		expect(args.slice(args.indexOf("--thinking"), args.indexOf("--thinking") + 2)).toEqual(["--thinking", "low"]);
-		expect(args.at(-1)).toBe("research");
+		expect(args.slice(args.indexOf("--model"), args.indexOf("--model") + 2)).toEqual(["--model", "parent/model"]);
+		expect(args.slice(args.indexOf("--thinking"), args.indexOf("--thinking") + 2)).toEqual(["--thinking", "high"]);
+		expect(args.at(-1)).toBe("investigate and fix");
+	});
+
+	test("allows runtime overrides and arbitrary task emoji", () => {
+		expect(resolveWorkerRuntime({ model: "override/model", thinking: "low" }, { model: "parent/model", thinking: "high" })).toEqual({
+			model: "override/model",
+			thinking: "low",
+		});
+		expect(jobIdentity(undefined, "pi")).toEqual({ icon: "🛠️", label: "worker" });
+		expect(jobIdentity("🦀", "pi")).toEqual({ icon: "🦀", label: "worker" });
+		expect(jobIdentity(undefined, "shell")).toEqual({ icon: "🖥️", label: "shell" });
 	});
 });
 
