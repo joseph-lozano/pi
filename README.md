@@ -24,7 +24,7 @@ export EXA_API_KEY=...
 |------|---------|
 | `settings.json` | Global settings |
 | `AGENTS.md` | Global agent instructions |
-| `extensions/` | Extensions (`exa`, `firecrawl`, `fast_mode`, `enable_search_tools`, `footer`, `git_interceptor`, `pi_cloak`) |
+| `extensions/` | Extensions |
 | `cloak.json` | Secret-masking rules for `pi_cloak` (committed) |
 | `skills/` | Skills |
 | `prompts/` | Prompt templates |
