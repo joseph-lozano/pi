@@ -9,6 +9,8 @@ trust.json
 models-store.json
 fast-mode.json
 pi-debug.log
+missions/
+run-history.jsonl
 *.log
 
 # Dependencies
