@@ -205,7 +205,7 @@ export default function backgroundJobsExtension(pi: ExtensionAPI) {
 			const id = ctx.sessionManager.getSessionId();
 			const result = await ctx.ui.custom(
 				(tui, theme, _keybindings, done) => new BackgroundJobsOverlay(manager, id, theme, () => tui.requestRender(), done),
-				{ overlay: true, overlayOptions: { width: "85%", maxHeight: "80%", minWidth: 60, anchor: "center", margin: 1 } },
+				{ overlay: true, overlayOptions: { width: "100%", maxHeight: 22, anchor: "bottom-center", margin: 0 } },
 			);
 			if (result?.action === "log") {
 				ctx.ui.setEditorText(result.path);
