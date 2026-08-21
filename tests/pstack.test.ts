@@ -1,6 +1,15 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { POTETO_MODE_ENTRY, potetoSystemPrompt, restorePotetoMode } from "../extensions/pstack/mode";
 import { choiceForRole, choicesForRole, configuredModelIds, missingConfiguredModels } from "../extensions/pstack/models";
+import { jobLogTail, listJobLogs, listWorkspaceSessions, resolveSessionFile, sessionTail } from "../extensions/pstack/sessions";
+
+const roots: string[] = [];
+afterEach(() => {
+	for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
+});
 
 describe("Poteto Mode state", () => {
 	test("restores the latest valid state on the active branch", () => {
@@ -21,6 +30,37 @@ describe("Poteto Mode state", () => {
 		expect(prompt).toContain("local job workers");
 		expect(prompt).toContain("cloud agents are out of scope");
 		expect(prompt).toContain("explicit user approval");
+	});
+});
+
+describe("workspace session discovery", () => {
+	test("lists only sibling sessions and returns bounded untrusted tails", () => {
+		const root = mkdtempSync(join(tmpdir(), "pstack-sessions-"));
+		roots.push(root);
+		const current = join(root, "current.jsonl");
+		const prior = join(root, "prior.jsonl");
+		writeFileSync(current, "");
+		writeFileSync(prior, [
+			JSON.stringify({ type: "message", message: { role: "user", content: [{ type: "text", text: "previous request" }] } }),
+			JSON.stringify({ type: "message", message: { role: "assistant", content: [{ type: "text", text: "previous answer" }] } }),
+		].join("\n"));
+		const listed = listWorkspaceSessions(current);
+		expect(listed.map((entry) => entry.id)).toEqual(["prior"]);
+		expect(resolveSessionFile(current, "prior")).toBe(prior);
+		expect(() => resolveSessionFile(current, "../other")).toThrow("invalid session id");
+		expect(sessionTail(prior, 1)).toBe("assistant: previous answer");
+	});
+
+	test("lists and tails only validated worker log IDs", () => {
+		const root = mkdtempSync(join(tmpdir(), "pstack-jobs-"));
+		roots.push(root);
+		const current = join(root, "current.jsonl");
+		writeFileSync(current, "");
+		mkdirSync(join(root, "background-jobs"));
+		writeFileSync(join(root, "background-jobs", "job_abc_1.log"), "worker evidence");
+		expect(listJobLogs(current).map((entry) => entry.id)).toEqual(["job_abc_1"]);
+		expect(jobLogTail(current, "job_abc_1")).toBe("worker evidence");
+		expect(() => jobLogTail(current, "../secret")).toThrow("invalid job id");
 	});
 });
 

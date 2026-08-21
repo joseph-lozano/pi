@@ -31,9 +31,9 @@ Researched version:
 
 - [x] Place imported skills under Pi's `skills/` package directory.
 - [x] Preserve `disable-model-invocation: true` where upstream uses it.
-- [ ] Replace `.cursor/skills/` paths with `.pi/skills/` or package-relative paths.
-- [ ] Replace `~/.cursor/` paths with Pi-native paths.
-- [ ] Replace Cursor transcript paths with the Pi session adapter.
+- [x] Replace `.cursor/skills/` paths with `.pi/skills/` or package-relative paths.
+- [x] Replace `~/.cursor/` paths with Pi-native paths.
+- [x] Replace Cursor transcript paths with the `pstack_sessions` adapter.
 - [x] Replace Cursor `Task` semantics with documented `job` profiles and calls.
 - [x] Replace Cursor model semantics with configured Pi model roles.
 - [x] Replace Cursor `/loop` semantics with the local watcher/rearm convention.
@@ -60,9 +60,9 @@ Researched version:
 The current todo implementation already supplies stable IDs, one-level subtasks, ordering, rename, removal, `pending` / `active` / `done` / `skipped` status transitions, skip notes, parent-completion guards, branch-local persistence, compaction reinjection, and a bounded widget.
 
 - [x] Support `status: "skipped"` with a concrete `note` for `skip:` and `n/a:` steps.
-- [ ] Update imported pstack instructions to use the local `todo` action schema.
-- [ ] Represent playbook steps as top-level items.
-- [ ] Represent throughput-checkpoint details as subtasks where useful.
+- [x] Update imported pstack instructions to use the local `todo` action schema.
+- [x] Represent playbook steps as top-level items.
+- [x] Represent throughput-checkpoint details as subtasks where useful.
 - [ ] Test verbatim playbook initialization for Feature, Bug fix, Investigation, and Orchestrate.
 - [ ] Test todo restoration after compaction, reload, resume, and tree navigation.
 - [ ] Test a large playbook in the persistent widget.
@@ -110,28 +110,28 @@ The current todo implementation already supplies stable IDs, one-level subtasks,
 
 ## 8. Sessions, transcripts, and durable state
 
-- [ ] Add a narrow Pi session-discovery tool or helper.
-- [ ] Scope session discovery to the current workspace by default.
-- [ ] Exclude the current session and test/noise sessions when requested.
-- [ ] Return metadata before loading full transcripts.
-- [ ] Expose background job logs as worker evidence.
-- [ ] Port Recall to Pi session JSONL and job logs.
-- [ ] Port Reflect to the active Pi transcript.
-- [ ] Port Session Pickup to Pi sessions, pushed branches, and resume notes.
+- [x] Add a narrow `pstack_sessions` discovery tool.
+- [x] Scope session discovery to the current workspace by default.
+- [x] Exclude the current session by default and allow explicit inclusion.
+- [x] Return metadata before loading bounded transcript tails.
+- [x] Expose background job logs as worker evidence.
+- [x] Port Recall to Pi session tails and job logs.
+- [x] Port Reflect to the active Pi session tail.
+- [x] Port Session Pickup to Pi sessions, pushed branches, and job logs.
 - [ ] Port Pause Safely to Pi compaction and shutdown behavior.
-- [ ] Port Show Me Your Work transcript auditing.
-- [ ] Port Eval's transcript-based chain verification.
+- [x] Port Show Me Your Work transcript auditing.
+- [x] Port Eval's transcript-based chain verification.
 - [ ] Define a Pi-native durable store if local nested Orchestrate is implemented later.
 
 ## 9. Cursor builtin replacements
 
 - [x] Port a Pi-native `create-skill` workflow.
-- [ ] Adapt `automate-me` to Pi transcript paths and Pi skill locations.
-- [ ] Adapt skill-authoring playbooks to Pi frontmatter and validation.
-- [ ] Decide whether ordinary chat is sufficient for `AskQuestion` cases.
-- [ ] If needed, add a small structured-question tool for setup and genuine preference gates.
-- [ ] Do not port Cursor's built-in Babysit; pstack's playbook supersedes it.
-- [ ] Do not port Cursor plan mode; pstack's optional plan reference is sufficient.
+- [x] Adapt `automate-me` to Pi session discovery and Pi skill locations.
+- [x] Adapt skill-authoring playbooks to Pi frontmatter and validation.
+- [x] Use concise ordinary user questions for former `AskQuestion` cases.
+- [x] Do not add a structured-question tool unless ordinary questions prove inadequate.
+- [x] Do not port Cursor's built-in Babysit; pstack's playbook supersedes it.
+- [x] Do not port Cursor plan mode; pstack's optional plan reference is sufficient.
 
 ## 10. Verification surfaces
 
@@ -146,23 +146,23 @@ The current todo implementation already supplies stable IDs, one-level subtasks,
 
 ## 11. Optional external evidence
 
-- [ ] Make source-control investigation work with `git` and `gh` by default.
-- [ ] Discover optional ticket, document, chat, observability, error-tracking, and analytics tools.
-- [ ] Pass only the tools required by an investigator profile.
-- [ ] Report unavailable evidence categories as explicit gaps.
-- [ ] Do not block core pstack on MCP or external evidence integrations.
-- [ ] Never permit an investigator to mutate an external system without approval.
+- [x] Make source-control investigation work with `git` and `gh` by default.
+- [x] Discover only optional evidence tools actually registered in Pi.
+- [x] Pass only read-only source and web tools to the investigator profile.
+- [x] Report unavailable evidence categories as explicit gaps.
+- [x] Do not block core pstack on MCP or external evidence integrations.
+- [x] Never permit an investigator to mutate an external system.
 
 ## 12. Git, worktrees, and shipping
 
-- [ ] Rewrite generic worktree instructions to coexist with Herdr-managed worktrees.
-- [ ] Never let a pstack cleanup workflow remove an active Herdr worktree directly.
-- [ ] Preserve one writer per worktree.
-- [ ] Keep `gh`-based PR inspection available.
-- [ ] Disable Graphite-specific Shipping and Autopilot steps while `gt` is unavailable.
-- [ ] Decide whether to install `gt` or provide plain-GitHub alternatives.
-- [ ] Centralize approval for pushes, PR mutations, merges, comments, deployments, and customer communication.
-- [ ] Present exact external content for approval before sending it.
+- [x] Rewrite the runtime adapter to coexist with Herdr-managed worktrees.
+- [x] Forbid generic cleanup from removing an active Herdr worktree directly.
+- [x] Preserve one writer per worktree.
+- [x] Keep `gh`-based PR inspection available.
+- [x] Disable Graphite-specific Shipping and Autopilot steps while `gt` is unavailable.
+- [x] Use plain `gh pr checks --watch` for PR checks and leave Graphite unavailable.
+- [x] Centralize approval for pushes, PR mutations, merges, comments, deployments, and customer communication.
+- [x] Present exact external content for approval before sending it.
 
 ## 13. Porting batches
 

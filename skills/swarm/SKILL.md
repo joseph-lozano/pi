@@ -12,7 +12,7 @@ Fan out N parallel cloud workers. They may cover separate slices, race the same 
 
 ## Start
 
-Open a todolist with one entry per phase before launching anything.
+Use `todo` with `action: "set"` and one top-level object seed per phase before launching anything.
 
 1. Frame
 2. Fan out
@@ -24,12 +24,12 @@ Open a todolist with one entry per phase before launching anything.
 1. State the done predicate and the artifact or report the swarm must return.
 2. Choose the shape. Partition into slices, race N workers on identical briefs, or mix both. For a race or mixed shape, declare `first pass`, `rank all`, or `best-of` before spawning.
 3. Set N from the user or derive it from the shape. N is total workers, not the cloud concurrency limit.
-4. Pick the worker model from `swarm workers` in `~/.cursor/rules/pstack-models.mdc` when present. Otherwise use `grok-4.6-fast-xhigh`. For a model race, name each arm's model up front.
+4. Pick workers through `job.role: "swarm"`. For a deliberate model race, use explicit model overrides from the static pstack panel and name each arm's model up front.
 5. Give each worker its own writable output when it writes. Use a worktree, branch, or `/tmp/swarm-<slug>/worker-<n>/`.
 
 ## Phase B: Fan out
 
-Spawn all N workers in one message with `subagent_type: generalPurpose`, `environment: "cloud"`, `run_in_background: true`, and the configured model. Use `environment: "local"` only when the worker needs access to something on the user's computer.
+Start all N local workers before waiting for any result, using `job` with `kind: "pi"`, `profile: "writer"` or `reviewer` as appropriate, `role: "swarm"`, and `mode: "background"`. Give every writer its own worktree and explicit `cwd`.
 
 When a worker must start from a non-default pushed branch, pass `cloud_base_branch`.
 
