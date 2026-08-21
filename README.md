@@ -152,8 +152,8 @@ conversation.
 
 Always-on B1 footer (see `prototypes/footer.html`):
 
-- **Row 1:** cwd · branch · git `+/−` (numstat) · background-job emoji array (`[]` when idle) · phase anim on the right
-- **Row 2:** context ring · cache (last-turn db icon + session %) · Poteto Mode · provider · model · thinking · fast
+- **Row 1:** cwd · branch · git `+/−` (numstat) · background-job emoji array (`[]` when idle) · Poteto Mode `🥔` · phase anim on the right
+- **Row 2:** context ring · cache (last-turn db icon + session %) · provider · model · thinking · fast
 - **Phases:** idle `●` · think `sand` · tool `line` (includes edits) · stream pulse `●`  
 - **Whimsy** on the working line only (spinner upright, message italic)  
 - Git refreshes after `edit`/`write` and when the agent hands back to you
