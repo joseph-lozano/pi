@@ -93,8 +93,12 @@ export default function (pi: ExtensionAPI) {
 	pi.on("session_start", (_event, ctx) => {
 		context = ctx;
 		mkdirSync(dirname(requestFile), { recursive: true });
+		try {
+			lastRequest = readFileSync(requestFile, "utf8").trim();
+		} catch {
+			lastRequest = "";
+		}
 		watchFile(requestFile, { interval: 100 }, consumeRequest);
-		consumeRequest();
 	});
 
 	pi.on("session_shutdown", (event) => {

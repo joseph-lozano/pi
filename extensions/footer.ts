@@ -130,7 +130,7 @@ type Phase =
 	| { kind: "stream" }
 	| { kind: "tool"; toolName: string };
 
-type GitDelta = { plus: number; minus: number };
+type GitDelta = { plus: number; minus: number; untracked: number };
 
 type CacheView =
 	| { kind: "none" }
@@ -354,7 +354,7 @@ export default function footerExtension(pi: ExtensionAPI) {
 	let phase: Phase = { kind: "idle" };
 	let frameIdx = 0;
 	let whimsy = pickWhimsy();
-	let git: GitDelta = { plus: 0, minus: 0 };
+	let git: GitDelta = { plus: 0, minus: 0, untracked: 0 };
 	let gitRefreshing = false;
 	const activeTools = new Map<string, string>();
 	let timer: ReturnType<typeof setInterval> | undefined;
@@ -475,13 +475,17 @@ export default function footerExtension(pi: ExtensionAPI) {
 		if (gitRefreshing) return;
 		gitRefreshing = true;
 		try {
-			const [unstaged, staged] = await Promise.all([
+			const [unstaged, staged, status] = await Promise.all([
 				pi.exec("git", ["diff", "--numstat"], { cwd }).catch(() => undefined),
 				pi.exec("git", ["diff", "--cached", "--numstat"], { cwd }).catch(() => undefined),
+				pi.exec("git", ["status", "--porcelain", "--untracked-files=normal"], { cwd }).catch(() => undefined),
 			]);
 			const a = parseNumstat(unstaged?.stdout ?? "");
 			const b = parseNumstat(staged?.stdout ?? "");
-			git = { plus: a.plus + b.plus, minus: a.minus + b.minus };
+			const untracked = (status?.stdout ?? "")
+				.split("\n")
+				.filter((line) => line.startsWith("?? ")).length;
+			git = { plus: a.plus + b.plus, minus: a.minus + b.minus, untracked };
 			requestRender();
 		} finally {
 			gitRefreshing = false;
@@ -570,8 +574,11 @@ export default function footerExtension(pi: ExtensionAPI) {
 								? ""
 								: theme.fg("success", `${NF.branch} ${branch}`),
 						git:
-							git.plus || git.minus
-								? `${theme.fg("success", `+${git.plus}`)} ${theme.fg("error", `−${git.minus}`)}`
+							git.plus || git.minus || git.untracked
+								? [
+									`${theme.fg("success", `+${git.plus}`)} ${theme.fg("error", `−${git.minus}`)}`,
+									git.untracked ? theme.fg("warning", `?${git.untracked}`) : "",
+								].filter(Boolean).join(" ")
 								: theme.fg("dim", "clean"),
 						jobs: `[${activeJobs
 							.map((job) => jobIdentity(job.spec.emoji, job.spec.kind).icon)
