@@ -25,7 +25,7 @@ Resolve what is in scope vs explicitly out, technical or platform constraints, p
 Delegate codebase exploration (the **guard-the-context-window** principle skill).
 
 - Prefer `profile: "poteto"` for implementation. Use `writer` only when Poteto wrapping is unnecessary, and reviewer profiles for non-mutating work.
-- Pass `job.role` explicitly (`code` for implementation, `judgment` for difficult decisions, and the routed skill roles for panels).
+- Pass the matching workflow-specific `job.role` explicitly; use `hardest` for difficult cross-cutting decisions and the routed skill roles for panels.
 
 Each explorer returns file pointers, conventions, dependencies, test infrastructure, and entry points. No inlined dumps.
 

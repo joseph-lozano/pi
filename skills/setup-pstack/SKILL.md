@@ -20,4 +20,4 @@ This Pi port does not use Cursor model slugs, `.cursor/rules`, a runtime model f
 6. Run `tests/pstack.test.ts` and the full test suite.
 7. Reload Pi and confirm that startup reports no unavailable configured model.
 
-The supported roles are `code`, `judgment`, `exploration`, `synthesis`, `review`, `arena`, `architect`, and `swarm`. Workers select them through `job.role`; panel members use `job.panelIndex`.
+The supported roles are defined by `PstackModelRole` in `extensions/pstack/models.ts`. Workers select them through `job.role`; panel members use `job.panelIndex`.

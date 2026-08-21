@@ -87,7 +87,7 @@ The current todo implementation already supplies stable IDs, one-level subtasks,
 ## 6. Model-role configuration
 
 - [x] Define the pstack role-to-model configuration directly in the extension source.
-- [x] Configure model and thinking defaults for code, judgment, exploration, synthesis, review, arena, architect, and swarm roles.
+- [x] Configure workflow-specific scalar and panel roles for implementation, How, Why, Reflect, Arena, Architect, Interrogate, and Swarm.
 - [x] Support scalar roles and panel roles.
 - [x] Support an `inherit-parent` value or equivalent behavior.
 - [x] Validate configured model identifiers against Pi's available scoped models at startup and report invalid entries clearly.
@@ -192,6 +192,6 @@ The current todo implementation already supplies stable IDs, one-level subtasks,
 - [x] Smoke-test Investigation end to end.
 - [x] Smoke-test Feature end to end with delegated implementation and parent review.
 - [x] Smoke-test Bug fix end to end with reproduction and real-surface verification.
-- [x] Smoke-test Arena and Interrogate with both configured model families.
+- [x] Smoke-test Arena and Interrogate with the then-configured Sol/Grok panel; cover the expanded five-model panel through resolver tests and direct model probes.
 - [x] Smoke-test Babysit in `check` mode without external mutation.
 - [x] Confirm the full existing Pi test suite remains green.

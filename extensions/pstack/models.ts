@@ -8,35 +8,74 @@ export interface PstackModelChoice {
 export type PstackConfiguredChoice = PstackModelChoice | "inherit-parent";
 
 export type PstackModelRole =
-	| "code"
-	| "judgment"
-	| "exploration"
-	| "synthesis"
-	| "review"
-	| "arena"
-	| "architect"
+	| "feature"
+	| "refactoring"
+	| "bug-fix"
+	| "perf-issue"
+	| "hillclimb"
+	| "judgment-prose"
+	| "hardest"
+	| "how-explorer"
+	| "how-explainer"
+	| "how-critics"
+	| "why-investigator"
+	| "why-synthesizer"
+	| "reflect-tooling"
+	| "reflect-judgment"
+	| "arena-runners"
+	| "arena-cross-judge"
+	| "architect-runners"
+	| "interrogate-reviewers"
 	| "swarm";
 
-const SOL: PstackModelChoice = {
-	model: "openai-codex/gpt-5.6-sol",
-	thinking: "high",
-};
-
-const GROK: PstackModelChoice = {
+const GROK_46: PstackModelChoice = {
 	model: "xai/grok-4.6",
 	thinking: "high",
 };
 
-/** Static pstack model policy. Change this source to change role routing. */
+const GROK_45: PstackModelChoice = {
+	model: "xai/grok-4.5",
+	thinking: "high",
+};
+
+const SOL: PstackModelChoice = {
+	model: "openai-codex/gpt-5.6-sol",
+	thinking: "max",
+};
+
+const LUNA: PstackModelChoice = {
+	model: "openai-codex/gpt-5.6-luna",
+	thinking: "high",
+};
+
+const TERRA: PstackModelChoice = {
+	model: "openai-codex/gpt-5.6-terra",
+	thinking: "high",
+};
+
+const PANEL = [GROK_46, GROK_45, SOL, LUNA, TERRA] as const;
+
+/** Static pstack model policy, adapted from Jesse Hanley's published role split. */
 export const PSTACK_MODELS: Record<PstackModelRole, PstackConfiguredChoice | readonly PstackConfiguredChoice[]> = {
-	code: SOL,
-	judgment: SOL,
-	exploration: GROK,
-	synthesis: SOL,
-	review: [SOL, GROK],
-	arena: [SOL, GROK],
-	architect: SOL,
-	swarm: GROK,
+	feature: GROK_46,
+	refactoring: GROK_46,
+	"bug-fix": GROK_46,
+	"perf-issue": SOL,
+	hillclimb: SOL,
+	"judgment-prose": GROK_46,
+	hardest: GROK_46,
+	"how-explorer": LUNA,
+	"how-explainer": GROK_46,
+	"how-critics": PANEL,
+	"why-investigator": GROK_46,
+	"why-synthesizer": GROK_46,
+	"reflect-tooling": LUNA,
+	"reflect-judgment": GROK_46,
+	"arena-runners": PANEL,
+	"arena-cross-judge": PANEL,
+	"architect-runners": PANEL,
+	"interrogate-reviewers": PANEL,
+	swarm: GROK_46,
 };
 
 export function configuredChoicesForRole(role: PstackModelRole): readonly PstackConfiguredChoice[] {

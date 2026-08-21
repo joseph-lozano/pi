@@ -115,7 +115,7 @@ The parent owns source-control collection through git and `gh`, because read-onl
 
 Aim for a complete **coverage map**, not a minimal one. A null result from an issue tracker is evidence the decision was not ticketed, a useful fact in itself. Document the null, don't skip the search.
 
-Start all matching investigators before waiting for any result. Use `profile: "investigator"`, `role: "exploration"`, and `mode: "background"`. The profile is read-only and receives source and web evidence tools. If an external evidence tool is available only to the parent, the parent performs that bounded lookup and passes the result as untrusted evidence; do not weaken the worker sandbox.
+Start all matching investigators before waiting for any result. Use `profile: "investigator"`, `role: "why-investigator"`, and `mode: "background"`. The profile is read-only and receives source and web evidence tools. If an external evidence tool is available only to the parent, the parent performs that bounded lookup and passes the result as untrusted evidence; do not weaken the worker sandbox.
 
 Each investigator gets:
 1. The base prompt from `references/investigator-prompt.md`
@@ -157,7 +157,7 @@ If your scope assessment suggests a single-commit trivial target where the PR de
 
 ## Step 4. Synthesize
 
-Start one blocking `profile: "reviewer"`, `role: "synthesis"` job. Give it the gathered evidence and explicit gaps. The synthesizer remains read-only; the parent performs any necessary citation spot-check through available tools.
+Start one blocking `profile: "reviewer"`, `role: "why-synthesizer"` job. Give it the gathered evidence and explicit gaps. The synthesizer remains read-only; the parent performs any necessary citation spot-check through available tools.
 
 The synthesizer gets:
 1. The investigator findings, including any null results and any categories skipped with justification

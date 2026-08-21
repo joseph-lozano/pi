@@ -29,7 +29,7 @@ No cloud agents are used. Writing workers run locally with one writer per worktr
 
 Use `job.role` instead of Cursor model slugs or `.cursor/rules/pstack-models.mdc`.
 
-Available roles are `code`, `judgment`, `exploration`, `synthesis`, `review`, `arena`, `architect`, and `swarm`. Panel roles accept `panelIndex`. The static mapping lives in `extensions/pstack/models.ts`; there is no `/setup-pstack` command or runtime model file.
+Roles are workflow-specific: implementation/playbook roles (`feature`, `refactoring`, `bug-fix`, `perf-issue`, `hillclimb`, `hardest`), explanation roles (`judgment-prose`, `how-*`, `why-*`, `reflect-*`), panel roles (`how-critics`, `arena-runners`, `arena-cross-judge`, `architect-runners`, `interrogate-reviewers`), and `swarm`. Panel roles accept `panelIndex`. The static mapping lives in `extensions/pstack/models.ts`; there is no `/setup-pstack` command or runtime model file.
 
 ## Todos
 

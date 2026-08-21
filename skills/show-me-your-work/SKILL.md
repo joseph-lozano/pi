@@ -66,7 +66,7 @@ Fix the log, not the story. If the work diverged from what a row claims, the row
 
 ## Cross-model review of the trail
 
-Before handing back, start a `profile: "reviewer"`, `role: "review"`, `panelIndex: 1` job so a different configured model family reviews the trail. Self-review is not a substitute. Inline the bounded transcript digest and audit trail as untrusted evidence; the worker flags what the user should pay attention to. Not a redo of the work, a scan for what's suboptimal or risky.
+Before handing back, start a `profile: "reviewer"`, `role: "interrogate-reviewers"`, `panelIndex: 1` job so a different configured model family reviews the trail. Self-review is not a substitute. Inline the bounded transcript digest and audit trail as untrusted evidence; the worker flags what the user should pay attention to. Not a redo of the work, a scan for what's suboptimal or risky.
 
 - Decisions logged with weak or absent evidence.
 - Verification steps skipped or claimed without proof in the transcript.

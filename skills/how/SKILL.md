@@ -44,7 +44,7 @@ Decompose the question into 2-4 parallel exploration angles, each a distinct sli
 
 The right decomposition depends on the question. Use your judgment. Narrow questions: 2 explorers is fine. Broad subsystems: up to 4.
 
-Start all explorers before waiting for any result. Each is a `job` with `kind: "pi"`, `profile: "reviewer"`, `role: "exploration"`, and `mode: "background"`.
+Start all explorers before waiting for any result. Each is a `job` with `kind: "pi"`, `profile: "reviewer"`, `role: "how-explorer"`, and `mode: "background"`.
 
 Each explorer gets the same base prompt from `references/explorer-prompt.md` plus a specific exploration angle naming its slice. Each explorer should:
 - Start broad: Glob for relevant directories, Grep for key types/interfaces/class names
@@ -59,7 +59,7 @@ Then proceed to Step 3.
 
 ### Step 2b. Direct Explain (simple questions)
 
-Start a single blocking `profile: "reviewer"`, `role: "synthesis"` job that explores and explains in one pass.
+Start a single blocking `profile: "reviewer"`, `role: "how-explainer"` job that explores and explains in one pass.
 
 The agent does its own exploration (Glob, Grep, Read) and writes the explanation directly. Read `references/explainer-prompt.md` for the communication style and output format. Same structure, just no explorer findings as input.
 
@@ -67,7 +67,7 @@ Proceed to Step 4.
 
 ### Step 3. Synthesize (complex questions only)
 
-Once all explorers return, start a single blocking `profile: "reviewer"`, `role: "synthesis"` job to synthesize their findings into one coherent explanation.
+Once all explorers return, start a single blocking `profile: "reviewer"`, `role: "how-explainer"` job to synthesize their findings into one coherent explanation.
 
 The explainer gets all explorers' findings and writes the human-facing explanation (output format below). Read `references/explainer-prompt.md` for the full prompt template. The explainer reconciles overlapping findings, resolves contradictions, and weaves the slices into a unified picture.
 
@@ -99,7 +99,7 @@ Run the full explain flow above (Steps 1-4). You must understand the architectur
 
 ### Step 2. Spawn Critics
 
-After the explanation is complete, start one `profile: "reviewer"`, `role: "review"`, `mode: "background"` job per configured panel entry, using successive `panelIndex` values. Start every critic before waiting. The lead may explicitly raise a worker's thinking level when the architecture warrants deeper analysis.
+After the explanation is complete, start one `profile: "reviewer"`, `role: "how-critics"`, `mode: "background"` job per configured panel entry, using successive `panelIndex` values. Start every critic before waiting. The lead may explicitly raise a worker's thinking level when the architecture warrants deeper analysis.
 
 Read `references/critic-prompt.md` for the prompt template. Each critic gets:
 1. The explanation from Step 1 (so they don't re-explore)

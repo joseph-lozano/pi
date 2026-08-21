@@ -137,7 +137,7 @@ Pstack delegates through the managed `job` tool. Pi workers support `general`,
 `writer`, `poteto`, `reviewer`, `comment-sicko`, and `investigator` profiles.
 Reviewer and investigator profiles omit `bash`, `edit`, and `write`. Static
 model roles live in `extensions/pstack/models.ts`; `job.role` and optional
-`panelIndex` route work across the configured Sol and Grok models.
+`panelIndex` route work across the configured Grok 4.6, Grok 4.5, Sol, Luna, and Terra panel.
 
 `pstack_sessions` lists or reads bounded tails from sessions and worker logs in
 the current workspace only. Historical content is labeled untrusted. PR checks

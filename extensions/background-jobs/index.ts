@@ -127,7 +127,12 @@ export default function backgroundJobsExtension(pi: ExtensionAPI) {
 			kind: Type.Optional(StringEnum(["shell", "pi"] as const, { description: "Job kind for start; default shell" })),
 			emoji: Type.Optional(Type.String({ description: "Task-fitting display emoji for a Pi worker; default 🛠️" })),
 			profile: Type.Optional(StringEnum(["general", "writer", "poteto", "reviewer", "comment-sicko", "investigator"] as const, { description: "Pi worker profile; default general" })),
-			role: Type.Optional(StringEnum(["code", "judgment", "exploration", "synthesis", "review", "arena", "architect", "swarm"] as const, { description: "Static pstack model role" })),
+			role: Type.Optional(StringEnum([
+				"feature", "refactoring", "bug-fix", "perf-issue", "hillclimb",
+				"judgment-prose", "hardest", "how-explorer", "how-explainer", "how-critics",
+				"why-investigator", "why-synthesizer", "reflect-tooling", "reflect-judgment",
+				"arena-runners", "arena-cross-judge", "architect-runners", "interrogate-reviewers", "swarm",
+			] as const, { description: "Static pstack model role" })),
 			panelIndex: Type.Optional(Type.Integer({ minimum: 0, description: "Zero-based choice within a panel role" })),
 			mode: Type.Optional(StringEnum(["blocking", "background"] as const, { description: "Launch mode; default background" })),
 			wake: Type.Optional(StringEnum(["always", "never", "on-failure"] as const, { description: "Background completion wake policy; default always" })),

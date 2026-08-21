@@ -35,7 +35,7 @@ Write one clear paragraph. Reviewers challenge whether the work achieves the int
 
 ## Step 3, Spawn Reviewers
 
-Start all configured reviewers before waiting for any result. Use one `profile: "reviewer"`, `role: "review"`, `mode: "background"` job per static panel entry, with successive `panelIndex` values. The reviewer profile enforces a read-only tool set. If startup reports that a configured model is unavailable, stop and fix `extensions/pstack/models.ts`; do not invent a replacement or create an external item.
+Start all configured reviewers before waiting for any result. Use one `profile: "reviewer"`, `role: "interrogate-reviewers"`, `mode: "background"` job per static panel entry, with successive `panelIndex` values. The reviewer profile enforces a read-only tool set. If startup reports that a configured model is unavailable, stop and fix `extensions/pstack/models.ts`; do not invent a replacement or create an external item.
 
 Read `references/reviewer-prompt.md` and fill in the template with:
 1. The stated intent

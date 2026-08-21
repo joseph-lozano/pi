@@ -73,20 +73,36 @@ describe("workspace session discovery", () => {
 });
 
 describe("pstack model roles", () => {
-	test("uses the configured Sol and Grok scoped models", () => {
-		expect(configuredModelIds()).toEqual([
-			"openai-codex/gpt-5.6-sol",
+	test("uses the approved workflow roles and five-model panels", () => {
+		expect(new Set(configuredModelIds())).toEqual(new Set([
 			"xai/grok-4.6",
+			"xai/grok-4.5",
+			"openai-codex/gpt-5.6-sol",
+			"openai-codex/gpt-5.6-luna",
+			"openai-codex/gpt-5.6-terra",
+		]));
+		expect(choicesForRole("interrogate-reviewers")).toHaveLength(5);
+		expect(choicesForRole("feature")).toEqual([
+			{ model: "xai/grok-4.6", thinking: "high" },
 		]);
-		expect(choicesForRole("arena")).toHaveLength(2);
-		expect(choicesForRole("code")).toEqual([
-			{ model: "openai-codex/gpt-5.6-sol", thinking: "high" },
+		expect(choicesForRole("how-explorer")).toEqual([
+			{ model: "openai-codex/gpt-5.6-luna", thinking: "high" },
 		]);
-		expect(choiceForRole("arena", 1)).toEqual({ model: "xai/grok-4.6", thinking: "high" });
+		expect(choicesForRole("reflect-tooling")).toEqual([
+			{ model: "openai-codex/gpt-5.6-luna", thinking: "high" },
+		]);
+		expect(choiceForRole("arena-runners", 1)).toEqual({ model: "xai/grok-4.5", thinking: "high" });
+		expect(choiceForRole("arena-runners", 2)).toEqual({ model: "openai-codex/gpt-5.6-sol", thinking: "max" });
+		expect(choiceForRole("arena-runners", 4)).toEqual({ model: "openai-codex/gpt-5.6-terra", thinking: "high" });
 	});
 
 	test("reports and enforces unavailable configured models", () => {
-		expect(missingConfiguredModels(["openai-codex/gpt-5.6-sol"])).toEqual(["xai/grok-4.6"]);
+		expect(missingConfiguredModels(["openai-codex/gpt-5.6-sol"])).toEqual([
+			"xai/grok-4.6",
+			"openai-codex/gpt-5.6-luna",
+			"xai/grok-4.5",
+			"openai-codex/gpt-5.6-terra",
+		]);
 		expect(missingConfiguredModels(configuredModelIds())).toEqual([]);
 		setPstackAvailableModels(["openai-codex/gpt-5.6-sol"]);
 		expect(isPstackModelAvailable("openai-codex/gpt-5.6-sol")).toBe(true);

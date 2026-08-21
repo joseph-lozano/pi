@@ -32,15 +32,15 @@ Start three parallel `job` workers with `profile: "reviewer"`, the roles below, 
 
 | Lens | `model` | Prompt template |
 |---|---|---|
-| Judgment | `judgment` | `references/judgment-reviewer.md` |
-| Tooling | `review` | `references/tooling-reviewer.md` |
-| Divergent | `exploration` | `references/divergent-reviewer.md` |
+| Judgment | `reflect-judgment` | `references/judgment-reviewer.md` |
+| Tooling | `reflect-tooling` | `references/tooling-reviewer.md` |
+| Divergent | `reflect-judgment` | `references/divergent-reviewer.md` |
 
 Pass each template verbatim, substituting the transcript digest where marked. Gather each result with `job wait`; complete output remains in the job log.
 
 ### 3. Synthesize
 
-Start one `profile: "reviewer"`, `role: "synthesis"` job. Use `references/synthesizer.md` verbatim, with each reviewer's full output inlined where marked. The synthesizer returns a structured Accepted / Rejected / Backlog list and reports unavailable evidence systems as gaps.
+Start one `profile: "reviewer"`, `role: "reflect-judgment"` job. Use `references/synthesizer.md` verbatim, with each reviewer's full output inlined where marked. The synthesizer returns a structured Accepted / Rejected / Backlog list and reports unavailable evidence systems as gaps.
 
 ### 4. Structural enforcement check
 

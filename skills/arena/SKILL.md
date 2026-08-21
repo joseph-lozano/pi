@@ -27,12 +27,12 @@ The N candidates will receive the same prompt, so the prompt is the contract. Ge
 
 1. State the artifact each candidate is producing.
 2. Derive the rubric. State what success looks like for *this* task, then turn it into 3-6 concrete gradeable criteria. Concrete: `Adds a --dry-run flag that skips writes`. Vague: `code is correct`. The rubric is the picker's tool in Phase D; candidates only see the task.
-3. Pick the runners from the static `arena` role. Use `job.role: "arena"` with successive `panelIndex` values. Spawn more only when the arena covers additional design directions. Reusing one role member is acceptable when the work is generation-bound rather than judgment-sensitive.
+3. Pick the runners from the static `arena-runners` role. Use `job.role: "arena-runners"` with successive `panelIndex` values. Spawn more only when the arena covers additional design directions. Reusing one role member is acceptable when the work is generation-bound rather than judgment-sensitive.
 4. Assign output paths. Each candidate writes to its own location (a git worktree where possible, otherwise `/tmp/arena-<slug>/candidate-<n>/`). N candidates writing to the same path is shared mutable state and fails the the **separate-before-serializing-shared-state** principle skill test.
 
 ## Phase B: Fan out
 
-Start all N `profile: "writer"`, `role: "arena"`, `mode: "background"` jobs before waiting for any result. Give each the task, shared-grounding path, unique worktree/output path, and instructions to produce both the artifact and a short rationale.
+Start all N `profile: "writer"`, `role: "arena-runners"`, `mode: "background"` jobs before waiting for any result. Give each the task, shared-grounding path, unique worktree/output path, and instructions to produce both the artifact and a short rationale.
 
 The rationale is mandatory. Without it, the parent cannot tell whether a candidate's structure is principled or accidental, which makes Phase E grafting unreliable. Each rationale names the alternatives the candidate considered and what it rejected.
 
@@ -40,7 +40,7 @@ If a candidate fails to produce output, proceed with N-1 and note the dropout in
 
 ## Phase C: Cross-judge
 
-After all Phase B candidates complete, start one `profile: "reviewer"`, `role: "arena"` job with a `panelIndex` that selects a different configured family from the parent when possible. It sees the rubric and the candidates by path label, scores each criterion, and recommends a base with rationale. It runs in parallel with the parent's reading in Phase D, not with the candidates themselves. Spawning while candidates are still writing means the judge sees partial or empty outputs and reports them as dropouts.
+After all Phase B candidates complete, start one `profile: "reviewer"`, `role: "arena-cross-judge"` job with a `panelIndex` that selects a different configured family from the parent when possible. It sees the rubric and the candidates by path label, scores each criterion, and recommends a base with rationale. It runs in parallel with the parent's reading in Phase D, not with the candidates themselves. Spawning while candidates are still writing means the judge sees partial or empty outputs and reports them as dropouts.
 
 ## Phase D: Pick a base
 

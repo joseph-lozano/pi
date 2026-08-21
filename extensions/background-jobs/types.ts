@@ -1,3 +1,5 @@
+import type { PstackModelRole } from "../pstack/models";
+
 export type JobKind = "shell" | "pi";
 export type LaunchMode = "blocking" | "background";
 export type WakePolicy = "always" | "never" | "on-failure";
@@ -34,7 +36,7 @@ export interface JobSpec {
 	prompt?: string;
 	emoji?: string;
 	profile?: WorkerProfileName;
-	role?: "code" | "judgment" | "exploration" | "synthesis" | "review" | "arena" | "architect" | "swarm";
+	role?: PstackModelRole;
 	panelIndex?: number;
 	model?: string;
 	thinking?: ThinkingLevel;
