@@ -10,7 +10,7 @@ Reviewer outputs:
 
 <DIVERGENT_OUTPUT>
 
-Apply each criterion to every finding:
+A reviewer output of `NO_FINDINGS` is an honest empty result, not a failure. If all three reviewers return it, output empty Accepted, Rejected, and Backlog sections and stop. Otherwise apply each criterion to every finding:
 
 - Durability: still true in 6 months once paths, SHAs, tool versions, and code shapes have changed.
 - Specificity: broad enough to apply across tasks, precise enough that a future agent recognizes when to use it. Reject vague platitudes ("write good code") and hyper-specific facts ("`<specific-skill-name>` has 175 tokens at limit 80").

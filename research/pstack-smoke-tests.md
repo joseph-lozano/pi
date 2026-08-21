@@ -132,3 +132,17 @@ Run:
 ```text
 bun test
 ```
+
+## Expanded pre-merge smoke pass
+
+Date: 2026-08-21
+
+Fresh Herdr tabs loaded Pi from the `pstack` worktree with isolated session directories.
+
+- **Five-model panel routing:** five concurrent `interrogate-reviewers` jobs at panel indexes 0–4 returned `ROUTE_0` through `ROUTE_4`. Independent JSON log inspection confirmed, in order, `xai/grok-4.6`, `xai/grok-4.5`, `openai-codex/gpt-5.6-sol`, `openai-codex/gpt-5.6-luna`, and `openai-codex/gpt-5.6-terra`.
+- **Poteto Mode:** `/poteto-mode` injected the workflow prompt (`POTETO_ACTIVE`), displayed bare `🥔` immediately after the background-job array, survived `/reload`, and `/poteto-off` removed the indicator.
+- **Todo display contract:** an over-80-character item without `displayName` was rejected. Retrying with `displayName: "Human display label"` retained the exact full text for `todo get`, while the widget showed only the display name and no ID. Todo calls rendered on one line.
+- **Compact session calls:** after reload, `pstack_sessions list` rendered as the single line `pstack sessions list`.
+- **Reflect:** an intentionally empty session ran judgment, tooling, and divergent reviewers concurrently. Grok 4.6 handled judgment/divergent, Luna handled tooling, all returned `NO_FINDINGS`, and Grok 4.6 synthesis produced empty Accepted, Rejected, and Backlog sections without inventing findings. An earlier run exposed and led to fixing the old forced 3–5 finding requirement.
+- **Model controls:** real one-shot requests passed for Sol Max, Luna High, Terra High, and Grok 4.5 High. Exact `FOOBAR` controls failed for xAI and OpenAI Codex, confirming no generic unknown-model fallback.
+- **Repository state:** no smoke agent modified tracked files. Final `bun test`: 53 passed, 0 failed.

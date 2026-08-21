@@ -2,6 +2,7 @@ import { join } from "node:path";
 import { StringEnum } from "@earendil-works/pi-ai";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
+import { Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 import { POTETO_MODE_ENTRY, potetoSystemPrompt, restorePotetoMode } from "./mode";
 import { missingConfiguredModels } from "./models";
@@ -53,6 +54,10 @@ export default function pstackExtension(pi: ExtensionAPI) {
 			limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 50, description: "Maximum list entries or transcript messages" })),
 			includeCurrent: Type.Optional(Type.Boolean({ description: "Include the current session in list results" })),
 		}),
+		renderCall(args, theme) {
+			const id = args.id ? ` ${theme.fg("accent", args.id)}` : "";
+			return new Text(`${theme.fg("toolTitle", theme.bold("pstack sessions"))} ${theme.fg("muted", args.action)}${id}`, 0, 0);
+		},
 		async execute(_id, params, _signal, _onUpdate, ctx) {
 			const currentFile = ctx.sessionManager.getSessionFile();
 			if (!currentFile) throw new Error("Current session has no file; workspace session discovery is unavailable.");
