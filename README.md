@@ -123,7 +123,7 @@ bounded widget window around the active or first pending item.
 ### Pstack (`pstack/` + `skills/`)
 
 The vendored pstack skills are pinned and attributed under `vendor/pstack/`.
-`/poteto-mode [task]` enables the branch-persisted mode; `/poteto-mode off`
+`/poteto-mode [task]` enables the branch-persisted mode; `/poteto-off`
 disables it. Active mode injects the Poteto router, requires verbatim playbook
 todos, and appears as `🥔 poteto` in the existing footer. Other workflows use
 Pi's native `/skill:<name>` command, for example `/skill:how`.

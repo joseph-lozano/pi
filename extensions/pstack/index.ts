@@ -86,16 +86,17 @@ export default function pstackExtension(pi: ExtensionAPI) {
 	});
 
 	pi.registerCommand("poteto-mode", {
-		description: "Enable persistent Poteto Mode, run an optional task, or disable with 'off'",
+		description: "Enable persistent Poteto Mode and run an optional task",
 		handler: async (args, ctx) => {
 			const task = args.trim();
-			if (task.toLowerCase() === "off") {
-				applyState(false, ctx, true);
-				return;
-			}
 			applyState(true, ctx, true);
 			if (task) pi.sendUserMessage(task);
 		},
+	});
+
+	pi.registerCommand("poteto-off", {
+		description: "Disable persistent Poteto Mode",
+		handler: async (_args, ctx) => applyState(false, ctx, true),
 	});
 
 }

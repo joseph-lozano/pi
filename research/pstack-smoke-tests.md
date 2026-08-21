@@ -11,7 +11,7 @@ Tab: `test-pstack-runtime`
 - Pi startup loaded `pstack`, `todo`, `background-jobs`, and the vendored skill inventory with no skill diagnostics after correcting the Poteto name and adapter location.
 - `/poteto-mode` displayed `🥔 poteto` in the existing footer.
 - `/reload` restored the enabled footer state from the session entry.
-- `/poteto-mode off` removed the footer indicator.
+- The disable command removed the footer indicator (now exposed as `/poteto-off`).
 - A direct system-prompt check returned `pstack-pi=no, how=yes`, confirming the hidden adapter is not model-invocable while `how` remains discoverable.
 - `/skill:how Where is the pstack model-role configuration defined?` completed through a read-only worker and cited `extensions/pstack/models.ts`.
 

@@ -45,8 +45,8 @@ Researched version:
 ## 3. Commands and Poteto Mode
 
 - [x] Implement persistent `/poteto-mode [task]`.
-- [x] Implement `/poteto-mode off`.
-- [x] Register only the `/poteto-mode` alias for now; use Pi's native `/skill:<name>` commands for other skills.
+- [x] Implement `/poteto-off`.
+- [x] Register only the `/poteto-mode` and `/poteto-off` aliases; use Pi's native `/skill:<name>` commands for other skills.
 - [x] Persist mode state in custom session entries.
 - [x] Restore mode state after reload, resume, and tree navigation.
 - [x] Inject Poteto Mode instructions through `before_agent_start`.
