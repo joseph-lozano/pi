@@ -535,9 +535,10 @@ export default function footerExtension(pi: ExtensionAPI) {
 					const colorizeCtx = ctxColor(theme, level);
 
 					const herdr = herdrWorktree(ctx.cwd);
-					const cwdText = herdr
-						? `${herdr.repo}/${branch || herdr.branch}`
-						: formatCwd(ctx.cwd);
+					const cwdText = formatCwd(ctx.cwd);
+					const herdrCwdText = herdr
+						? `${theme.fg("muted", `${herdr.repo}/`)}${theme.fg("thinkingText", theme.bold(branch || herdr.branch))}`
+						: "";
 					const thinking = ctx.thinkingLevel ?? pi.getThinkingLevel();
 					const provider = ctx.model?.provider ?? "?";
 					const model = ctx.model?.id ?? "no-model";
@@ -548,7 +549,7 @@ export default function footerExtension(pi: ExtensionAPI) {
 
 					const segments: Record<string, string> = {
 						cwd: herdr
-							? `🐑 ${theme.fg("muted", cwdText)}`
+							? `🐑 ${herdrCwdText}`
 							: `📁 ${theme.fg("muted", cwdText)}`,
 						branch:
 							herdr || !branch
