@@ -8,6 +8,7 @@ import type { JobEvent, JobOwner, JobRecord, JobSpec, PersistedJobRecord } from 
 
 const DEFAULT_TAIL_BYTES = 24 * 1024;
 const DEFAULT_GRACE_MS = 2_000;
+const REGISTRY_KEY = Symbol.for("pi.background-jobs.registry.v1");
 
 export function shouldPreserveJobsOnShutdown(reason: string): boolean {
 	return reason === "reload";
@@ -64,6 +65,13 @@ export function buildPiArgs(spec: JobSpec): string[] {
 	if (spec.thinking) args.push("--thinking", spec.thinking);
 	args.push(spec.prompt ?? "");
 	return args;
+}
+
+interface RegistryGlobal { [REGISTRY_KEY]?: JobManager }
+
+export function getBackgroundJobManager(): JobManager {
+	const global = globalThis as typeof globalThis & RegistryGlobal;
+	return global[REGISTRY_KEY] ??= new JobManager();
 }
 
 export class JobManager {

@@ -4,7 +4,7 @@ import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-a
 import { Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 import { formatCompletionBatch, formatJob } from "./format";
-import { JobManager, shouldPreserveJobsOnShutdown } from "./manager";
+import { getBackgroundJobManager, shouldPreserveJobsOnShutdown } from "./manager";
 import { BackgroundJobsOverlay } from "./overlay";
 import { jobIdentity, resolveWorkerRuntime } from "./worker";
 import type { JobRecord, JobSpec, PersistedJobRecord } from "./types";
@@ -12,14 +12,6 @@ import type { JobRecord, JobSpec, PersistedJobRecord } from "./types";
 const ENTRY_TYPE = "background-job-record";
 const MESSAGE_TYPE = "background-job-completion";
 const BATCH_MS = 3_000;
-const REGISTRY_KEY = Symbol.for("pi.background-jobs.registry.v1");
-
-interface RegistryGlobal { [REGISTRY_KEY]?: JobManager }
-
-export function getBackgroundJobManager(): JobManager {
-	const global = globalThis as typeof globalThis & RegistryGlobal;
-	return global[REGISTRY_KEY] ??= new JobManager();
-}
 
 function summary(job: JobRecord): string {
 	const identity = jobIdentity(job.spec.emoji, job.spec.kind);

@@ -22,6 +22,8 @@ import type {
 } from "@earendil-works/pi-coding-agent";
 import type { TUI } from "@earendil-works/pi-tui";
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
+import { getBackgroundJobManager } from "./background-jobs/manager";
+import { jobIdentity } from "./background-jobs/worker";
 
 // —— icons (nerd / emoji mix) ————————————————————————————————
 
@@ -348,6 +350,7 @@ function joinParts(parts: string[], theme: Theme): string {
 // —— extension ————————————————————————————————————————————————
 
 export default function footerExtension(pi: ExtensionAPI) {
+	const backgroundJobs = getBackgroundJobManager();
 	let phase: Phase = { kind: "idle" };
 	let frameIdx = 0;
 	let whimsy = pickWhimsy();
@@ -357,6 +360,7 @@ export default function footerExtension(pi: ExtensionAPI) {
 	let timer: ReturnType<typeof setInterval> | undefined;
 	let activeTui: TUI | undefined;
 	let liveCtx: ExtensionContext | undefined;
+	let unsubscribeJobs: (() => void) | undefined;
 
 	const requestRender = (): void => {
 		activeTui?.requestRender();
@@ -517,10 +521,16 @@ export default function footerExtension(pi: ExtensionAPI) {
 		ctx.ui.setFooter((tui, theme, footerData) => {
 			activeTui = tui;
 			const unsubBranch = footerData.onBranchChange(() => tui.requestRender());
+			unsubscribeJobs?.();
+			unsubscribeJobs = backgroundJobs.subscribe((event) => {
+				if (event.job.owner.sessionId === ctx.sessionManager.getSessionId()) tui.requestRender();
+			});
 
 			return {
 				dispose: () => {
 					unsubBranch();
+					unsubscribeJobs?.();
+					unsubscribeJobs = undefined;
 					if (activeTui === tui) activeTui = undefined;
 				},
 				invalidate() {},
@@ -544,6 +554,10 @@ export default function footerExtension(pi: ExtensionAPI) {
 					const model = ctx.model?.id ?? "no-model";
 					const fastOn = isFastEnabled();
 					const cache = cacheView(ctx.sessionManager.getBranch());
+					const sessionId = ctx.sessionManager.getSessionId();
+					const activeJobs = backgroundJobs.list(sessionId).filter(
+						(job) => job.status === "queued" || job.status === "running",
+					);
 
 					// —— segment builders ——————————————————————————
 
@@ -559,6 +573,9 @@ export default function footerExtension(pi: ExtensionAPI) {
 							git.plus || git.minus
 								? `${theme.fg("success", `+${git.plus}`)} ${theme.fg("error", `−${git.minus}`)}`
 								: theme.fg("dim", "clean"),
+						jobs: `[${activeJobs
+							.map((job) => jobIdentity(job.spec.emoji, job.spec.kind).icon)
+							.join(", ")}]`,
 						anim: animGlyph(theme),
 						ctx:
 							pct === null || pct === undefined || !window
@@ -581,7 +598,7 @@ export default function footerExtension(pi: ExtensionAPI) {
 						fast: fastOn ? theme.fg("warning", NF.fast) : "",
 					};
 
-					const row1Order = ["cwd", "branch", "git", "anim"] as const;
+					const row1Order = ["cwd", "branch", "git", "jobs", "anim"] as const;
 					const row1Drop = ["cwd", "branch"] as const;
 					const row2Order = ["ctx", "cache", "provider", "model", "thinking", "fast"] as const;
 					const row2Drop = ["provider", "cache", "fast", "thinking", "model"] as const;
@@ -602,10 +619,13 @@ export default function footerExtension(pi: ExtensionAPI) {
 						const render = (): string => {
 							if (opts.animRight && visible.has("anim")) {
 								const left = row1Order
-									.filter((id) => id !== "anim" && visible.has(id))
+									.filter((id) => id !== "jobs" && id !== "anim" && visible.has(id))
 									.map((id) => segments[id]!);
 								const leftHtml = joinParts(left, theme);
-								const right = segments.anim!;
+								const right = ["jobs", "anim"]
+									.filter((id) => visible.has(id))
+									.map((id) => segments[id]!)
+									.join(" ");
 								const gap = Math.max(
 									1,
 									width - visibleWidth(leftHtml) - visibleWidth(right),
@@ -659,6 +679,8 @@ export default function footerExtension(pi: ExtensionAPI) {
 
 	pi.on("session_shutdown", async () => {
 		stopTimer();
+		unsubscribeJobs?.();
+		unsubscribeJobs = undefined;
 		activeTui = undefined;
 		liveCtx = undefined;
 		activeTools.clear();
