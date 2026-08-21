@@ -4,6 +4,8 @@ description: "Apply when debugging. Trace each symptom to its root cause and fix
 disable-model-invocation: true
 ---
 
+> **Pi runtime:** Before applying this skill, read [`../PSTACK_PI.md`](../PSTACK_PI.md). That adapter overrides Cursor-specific Task, todo, model, loop, path, and external-action instructions.
+
 # Fix Root Causes
 
 When debugging, do not paper over symptoms. Trace every problem to its root cause and fix it there.

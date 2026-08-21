@@ -4,6 +4,8 @@ description: "Apply when sequencing an addition, refactor, or rewrite. Remove de
 disable-model-invocation: true
 ---
 
+> **Pi runtime:** Before applying this skill, read [`../PSTACK_PI.md`](../PSTACK_PI.md). That adapter overrides Cursor-specific Task, todo, model, loop, path, and external-action instructions.
+
 # Subtract Before You Add
 
 When evolving a system, remove complexity first, then build. Deletion gives you a simpler base, which makes the next addition smaller and less brittle.

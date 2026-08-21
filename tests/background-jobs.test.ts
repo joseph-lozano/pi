@@ -7,7 +7,7 @@ import { elapsed, formatCompletionBatch } from "../extensions/background-jobs/fo
 import { addedRenderedRows } from "../extensions/background-jobs/log-lines";
 import { wheelDirection } from "../extensions/background-jobs/mouse";
 import { PiJsonProjector } from "../extensions/background-jobs/pi-json";
-import { jobIdentity, resolveWorkerRuntime } from "../extensions/background-jobs/worker";
+import { getWorkerConfig, jobIdentity, resolveWorkerRuntime } from "../extensions/background-jobs/worker";
 import type { JobRecord, JobSpec } from "../extensions/background-jobs/types";
 
 const roots: string[] = [];
@@ -123,6 +123,28 @@ describe("Pi worker", () => {
 		expect(args.slice(args.indexOf("--model"), args.indexOf("--model") + 2)).toEqual(["--model", "parent/model"]);
 		expect(args.slice(args.indexOf("--thinking"), args.indexOf("--thinking") + 2)).toEqual(["--thinking", "high"]);
 		expect(args.at(-1)).toBe("investigate and fix");
+	});
+
+	test("loads named pstack profiles with selective skills and enforced tool sets", () => {
+		const potetoArgs = buildPiArgs({
+			kind: "pi",
+			mode: "blocking",
+			wake: "never",
+			cwd: process.cwd(),
+			prompt: "implement",
+			profile: "poteto",
+		});
+		const skillPaths = potetoArgs.flatMap((arg, index) => potetoArgs[index - 1] === "--skill" ? [arg] : []);
+		expect(skillPaths.some((path) => path.endsWith("/skills/poteto-mode"))).toBe(true);
+		expect(getWorkerConfig("poteto").systemPrompt).toContain("pstack implementation worker");
+
+		for (const profile of ["reviewer", "comment-sicko", "investigator"] as const) {
+			const config = getWorkerConfig(profile);
+			expect(config.tools).not.toContain("edit");
+			expect(config.tools).not.toContain("write");
+			expect(config.tools).not.toContain("bash");
+		}
+		expect(getWorkerConfig("comment-sicko").systemPrompt).toContain("Comment Sicko");
 	});
 
 	test("allows runtime overrides and arbitrary task emoji", () => {

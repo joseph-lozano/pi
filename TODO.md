@@ -21,7 +21,7 @@ Researched version:
 - [x] Copy the 44 upstream skills with their references and scripts.
 - [x] Copy all 21 principle skills.
 - [x] Copy the `poteto-agent` and `Comment Sicko` agent prompts.
-- [x] Copy the Poteto playbooks and bundled `watch-pr` and `orch` scripts.
+- [x] Copy the Poteto playbooks; deliberately omit Commander-based watcher and Orchestrate CLIs, replacing PR watching with `gh pr checks --watch` and deferring nested Orchestrate.
 - [x] Preserve the upstream MIT license.
 - [x] Record the upstream commit in a provenance file.
 - [x] Add a repeatable upstream-update procedure instead of relying on an undocumented copy.
@@ -29,31 +29,31 @@ Researched version:
 
 ## 2. Make skills native to Pi
 
-- [ ] Place imported skills under Pi's `skills/` package directory.
-- [ ] Preserve `disable-model-invocation: true` where upstream uses it.
+- [x] Place imported skills under Pi's `skills/` package directory.
+- [x] Preserve `disable-model-invocation: true` where upstream uses it.
 - [ ] Replace `.cursor/skills/` paths with `.pi/skills/` or package-relative paths.
 - [ ] Replace `~/.cursor/` paths with Pi-native paths.
 - [ ] Replace Cursor transcript paths with the Pi session adapter.
-- [ ] Replace Cursor `Task` examples with the `job` tool.
-- [ ] Replace Cursor model slugs with configured Pi model roles.
-- [ ] Replace Cursor `/loop` instructions with the local watcher/rearm convention.
-- [ ] Replace cloud-only language with local worktree execution.
+- [x] Replace Cursor `Task` semantics with documented `job` profiles and calls.
+- [x] Replace Cursor model semantics with configured Pi model roles.
+- [x] Replace Cursor `/loop` semantics with the local watcher/rearm convention.
+- [x] Replace cloud-only semantics with local worktree execution.
 - [ ] Validate every imported `SKILL.md` using Pi's skill loader.
-- [ ] Check every relative link and referenced script after relocation.
+- [x] Check every relative link and referenced script after relocation.
 
 ## 3. Commands and Poteto Mode
 
-- [ ] Implement persistent `/poteto-mode [task]`.
-- [ ] Implement `/poteto-mode off`.
-- [ ] Register only the `/poteto-mode` alias for now; use Pi's native `/skill:<name>` commands for other skills.
-- [ ] Persist mode state in custom session entries.
-- [ ] Restore mode state after reload, resume, and tree navigation.
-- [ ] Inject Poteto Mode instructions through `before_agent_start`.
-- [ ] Route a task to the matching playbook before work begins.
-- [ ] Initialize the todo list with the Principles item and verbatim playbook steps.
-- [ ] Keep skipped and inapplicable steps visible with reasons.
-- [ ] Show whether Poteto Mode is active in the existing footer.
-- [ ] Refresh the footer indicator when mode is enabled, disabled, restored, or changed by tree navigation.
+- [x] Implement persistent `/poteto-mode [task]`.
+- [x] Implement `/poteto-mode off`.
+- [x] Register only the `/poteto-mode` alias for now; use Pi's native `/skill:<name>` commands for other skills.
+- [x] Persist mode state in custom session entries.
+- [x] Restore mode state after reload, resume, and tree navigation.
+- [x] Inject Poteto Mode instructions through `before_agent_start`.
+- [x] Require routing to the matching playbook before work begins.
+- [x] Require todo initialization with the Principles item and verbatim playbook steps.
+- [x] Keep skipped and inapplicable steps visible with reasons.
+- [x] Show whether Poteto Mode is active in the existing footer.
+- [x] Refresh the footer indicator from shared restored mode state.
 
 ## 4. Todo integration
 
@@ -69,37 +69,37 @@ The current todo implementation already supplies stable IDs, one-level subtasks,
 
 ## 5. Local subagent profiles
 
-- [ ] Add a `profile` parameter to `job.start`.
-- [ ] Define a general worker profile.
-- [ ] Define a `poteto-agent` profile that loads Poteto Mode before working.
-- [ ] Define a read-only reviewer profile.
-- [ ] Define the `Comment Sicko` profile.
-- [ ] Define an investigator profile for source and optional external evidence.
-- [ ] Give each profile an explicit system prompt, tool set, and skill set.
-- [ ] Add an enforced read-only tool set without `edit`, `write`, or unrestricted mutation-capable shell access.
-- [ ] Keep writing workers scoped to one worktree and one writer per checkout.
-- [ ] Allow explicit model and thinking overrides per role.
-- [ ] Preserve bounded parent-visible output and complete job logs.
-- [ ] Document parallel launch, wait, aggregation, cancellation, and dropout handling.
-- [ ] Defer nested delegation unless local Orchestrate proves it necessary.
+- [x] Add a `profile` parameter to `job.start`.
+- [x] Define a general worker profile.
+- [x] Define a `poteto-agent` profile that loads Poteto Mode before working.
+- [x] Define a read-only reviewer profile.
+- [x] Define the `Comment Sicko` profile.
+- [x] Define an investigator profile for source and optional external evidence.
+- [x] Give each profile an explicit system prompt, tool set, and skill set.
+- [x] Add an enforced read-only tool set without `edit`, `write`, or unrestricted mutation-capable shell access.
+- [x] Keep writing workers scoped to one worktree and one writer per checkout.
+- [x] Allow explicit model and thinking overrides per role.
+- [x] Preserve bounded parent-visible output and complete job logs.
+- [x] Document parallel launch, wait, aggregation, cancellation, and dropout handling in the Pi adapter.
+- [x] Defer nested delegation and mark Orchestrate unavailable in this port.
 
 ## 6. Model-role configuration
 
-- [ ] Define the pstack role-to-model configuration directly in the extension source.
-- [ ] Configure model and thinking defaults for code, judgment, exploration, synthesis, review, arena, architect, and swarm roles.
-- [ ] Support scalar roles and panel roles.
-- [ ] Support an `inherit-parent` value or equivalent behavior.
-- [ ] Validate configured model identifiers against Pi's available scoped models at startup and report invalid entries clearly.
-- [ ] Expose one role resolver to imported skills and worker profiles.
-- [ ] Do not add `/setup-pstack` or a runtime model configuration file.
+- [x] Define the pstack role-to-model configuration directly in the extension source.
+- [x] Configure model and thinking defaults for code, judgment, exploration, synthesis, review, arena, architect, and swarm roles.
+- [x] Support scalar roles and panel roles.
+- [x] Support an `inherit-parent` value or equivalent behavior.
+- [x] Validate configured model identifiers against Pi's available scoped models at startup and report invalid entries clearly.
+- [x] Expose one role resolver through `job.role` and `job.panelIndex`.
+- [x] Do not add `/setup-pstack` or a runtime model configuration file.
 
 ## 7. Loops, watchers, and babysitting
 
 - [ ] Define the replacement contract for Cursor `/loop`.
-- [ ] Use deterministic background shell jobs for polling and event watching.
-- [ ] Wake the parent on actionable or terminal watcher states.
-- [ ] Require the parent to act and explicitly rearm the watcher.
-- [ ] Port and test pstack's bundled `watch-pr` script.
+- [x] Use managed `gh pr checks <number> --watch --interval 30` shell jobs for PR check watching.
+- [x] Wake the parent on terminal check-watcher states.
+- [x] Require the parent to act and explicitly rearm the watcher.
+- [x] Remove pstack's Commander-based `watch-pr` implementation and dependency.
 - [ ] Adapt Babysit modes: `drive`, `background`, `threads-only`, and `check`.
 - [ ] Preserve one babysitter per PR stack.
 - [ ] Preserve merge-frontier ordering and frozen PR-list behavior.
@@ -121,11 +121,11 @@ The current todo implementation already supplies stable IDs, one-level subtasks,
 - [ ] Port Pause Safely to Pi compaction and shutdown behavior.
 - [ ] Port Show Me Your Work transcript auditing.
 - [ ] Port Eval's transcript-based chain verification.
-- [ ] Define a Pi-native durable store for Orchestrate state.
+- [ ] Define a Pi-native durable store if local nested Orchestrate is implemented later.
 
 ## 9. Cursor builtin replacements
 
-- [ ] Port or implement a Pi-native `create-skill` workflow.
+- [x] Port a Pi-native `create-skill` workflow.
 - [ ] Adapt `automate-me` to Pi transcript paths and Pi skill locations.
 - [ ] Adapt skill-authoring playbooks to Pi frontmatter and validation.
 - [ ] Decide whether ordinary chat is sufficient for `AskQuestion` cases.

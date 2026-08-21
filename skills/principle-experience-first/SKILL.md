@@ -4,6 +4,8 @@ description: "Apply when product, UX, or feature-scope tradeoffs come up. Choose
 disable-model-invocation: true
 ---
 
+> **Pi runtime:** Before applying this skill, read [`../PSTACK_PI.md`](../PSTACK_PI.md). That adapter overrides Cursor-specific Task, todo, model, loop, path, and external-action instructions.
+
 # Experience First
 
 The product is the experience. Every technical decision either helps or hurts it. When implementation convenience conflicts with user delight, choose delight.

@@ -4,7 +4,7 @@
  * Spec (from prototypes/footer.html):
  *   Row 1: 📁 cwd · nerd-branch · git numstat … phase anim (right)
  *           herdr worktree: 🐑 repo/branch (no full path, no extra git-branch chip)
- *   Row 2: ctx ring · cache (last-turn db + session %) … provider · model · 🧠 · bolt
+ *   Row 2: ctx ring · cache (last-turn db + session %) · Poteto … provider · model · 🧠 · bolt
  *   Phases: idle ● · think sand · tool line (edits=tools) · stream pulse ●
  *   Whimsy on working line only (indicator upright, message italic)
  *   Drop r1: cwd → branch · Drop r2: provider → cache → fast → thinking → model
@@ -24,6 +24,7 @@ import type { TUI } from "@earendil-works/pi-tui";
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import { getBackgroundJobManager } from "./background-jobs/manager";
 import { jobIdentity } from "./background-jobs/worker";
+import { isPotetoModeEnabled } from "./pstack/shared";
 
 // —— icons (nerd / emoji mix) ————————————————————————————————
 
@@ -599,6 +600,7 @@ export default function footerExtension(pi: ExtensionAPI) {
 							);
 							return `${db}\u00a0${sess}`;
 						})(),
+						poteto: isPotetoModeEnabled() ? theme.fg("warning", "🥔 poteto") : "",
 						provider: theme.fg("accent", `${NF.provider} ${provider}`),
 						model: theme.fg("text", model),
 						thinking: theme.fg("thinkingText", `🧠 ${thinking}`),
@@ -607,7 +609,7 @@ export default function footerExtension(pi: ExtensionAPI) {
 
 					const row1Order = ["cwd", "branch", "git", "jobs", "anim"] as const;
 					const row1Drop = ["cwd", "branch"] as const;
-					const row2Order = ["ctx", "cache", "provider", "model", "thinking", "fast"] as const;
+					const row2Order = ["ctx", "cache", "poteto", "provider", "model", "thinking", "fast"] as const;
 					const row2Drop = ["provider", "cache", "fast", "thinking", "model"] as const;
 
 					const fitRow = (
@@ -640,7 +642,7 @@ export default function footerExtension(pi: ExtensionAPI) {
 								return truncateToWidth(leftHtml + " ".repeat(gap) + right, width);
 							}
 
-							const leftIds = ["ctx", "cache"].filter((id) => visible.has(id));
+							const leftIds = ["ctx", "cache", "poteto"].filter((id) => visible.has(id));
 							const rightIds = ["provider", "model", "thinking", "fast"].filter((id) =>
 								visible.has(id),
 							);

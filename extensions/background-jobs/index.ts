@@ -7,6 +7,7 @@ import { formatCompletionBatch, formatJob } from "./format";
 import { JobLogOverlay } from "./log-overlay";
 import { getBackgroundJobManager, shouldPreserveJobsOnShutdown } from "./manager";
 import { BackgroundJobsOverlay } from "./overlay";
+import { choiceForRole } from "../pstack/models";
 import { jobIdentity, resolveWorkerRuntime } from "./worker";
 import type { JobRecord, JobSpec, PersistedJobRecord } from "./types";
 
@@ -113,7 +114,7 @@ export default function backgroundJobsExtension(pi: ExtensionAPI) {
 	pi.registerTool({
 		name: "job",
 		label: "Job",
-		description: "Supervise session-owned shell or one-shot Pi worker jobs. Actions: start, wait, status, stop. Pi workers inherit the parent model and thinking level unless overridden. Give each Pi worker a task-fitting emoji, for example 🔍 investigation, 📚 research, 🐛 debugging, 🧪 testing, 🛠️ implementation, or ✍️ writing. Any emoji is accepted. Background starts return a stable job ID; wait claims completion so it is delivered exactly once. Output is bounded and complete output is written to the returned log path.",
+		description: "Supervise session-owned shell or one-shot Pi worker jobs. Actions: start, wait, status, stop. Pi workers support general, writer, poteto, reviewer, comment-sicko, and investigator profiles; reviewer profiles omit mutation tools and unrestricted shell access. Workers inherit the parent model and thinking level unless overridden. Background starts return a stable job ID; wait claims completion exactly once. Output is bounded and complete output is written to the returned log path.",
 		promptSnippet: "Start, wait for, inspect, or stop managed background jobs and one-shot Pi workers",
 		promptGuidelines: [
 			"Use job for managed long-running shell work or an isolated one-shot Pi task when the parent should remain responsive.",
@@ -124,6 +125,9 @@ export default function backgroundJobsExtension(pi: ExtensionAPI) {
 			id: Type.Optional(Type.String({ description: "Stable job ID for wait, status, or stop" })),
 			kind: Type.Optional(StringEnum(["shell", "pi"] as const, { description: "Job kind for start; default shell" })),
 			emoji: Type.Optional(Type.String({ description: "Task-fitting display emoji for a Pi worker; default 🛠️" })),
+			profile: Type.Optional(StringEnum(["general", "writer", "poteto", "reviewer", "comment-sicko", "investigator"] as const, { description: "Pi worker profile; default general" })),
+			role: Type.Optional(StringEnum(["code", "judgment", "exploration", "synthesis", "review", "arena", "architect", "swarm"] as const, { description: "Static pstack model role" })),
+			panelIndex: Type.Optional(Type.Integer({ minimum: 0, description: "Zero-based choice within a panel role" })),
 			mode: Type.Optional(StringEnum(["blocking", "background"] as const, { description: "Launch mode; default background" })),
 			wake: Type.Optional(StringEnum(["always", "never", "on-failure"] as const, { description: "Background completion wake policy; default always" })),
 			command: Type.Optional(Type.String({ description: "Shell command for a shell job" })),
@@ -165,11 +169,21 @@ export default function backgroundJobsExtension(pi: ExtensionAPI) {
 			const kind = params.kind ?? "shell";
 			if (kind === "shell" && !params.command?.trim()) return { content: [{ type: "text" as const, text: "A shell start requires command." }], details: {} };
 			if (kind === "shell" && params.emoji) return { content: [{ type: "text" as const, text: "Emoji is only available for Pi worker jobs." }], details: {} };
+			if (kind === "shell" && params.profile) return { content: [{ type: "text" as const, text: "Profiles are only available for Pi worker jobs." }], details: {} };
+			if (kind === "shell" && (params.role || params.panelIndex !== undefined)) return { content: [{ type: "text" as const, text: "Model roles are only available for Pi worker jobs." }], details: {} };
 			if (kind === "pi" && !params.prompt?.trim()) return { content: [{ type: "text" as const, text: "A Pi start requires prompt." }], details: {} };
+			const parentRuntime = {
+				model: ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : undefined,
+				thinking: ctx.thinkingLevel,
+			};
+			const roleChoice = params.role ? choiceForRole(params.role, params.panelIndex ?? 0,
+				parentRuntime.model && parentRuntime.thinking
+					? { model: parentRuntime.model, thinking: parentRuntime.thinking }
+					: undefined) : undefined;
 			const runtime = kind === "pi"
 				? resolveWorkerRuntime(
-					{ model: params.model, thinking: params.thinking },
-					{ model: ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : undefined, thinking: ctx.thinkingLevel },
+					{ model: params.model ?? roleChoice?.model, thinking: params.thinking ?? roleChoice?.thinking },
+					parentRuntime,
 				)
 				: { model: params.model, thinking: params.thinking };
 			const spec: JobSpec = {
@@ -180,6 +194,9 @@ export default function backgroundJobsExtension(pi: ExtensionAPI) {
 				command: params.command,
 				prompt: params.prompt,
 				emoji: params.emoji,
+				profile: kind === "pi" ? params.profile ?? "general" : undefined,
+				role: kind === "pi" ? params.role : undefined,
+				panelIndex: kind === "pi" ? params.panelIndex : undefined,
 				model: runtime.model,
 				thinking: runtime.thinking,
 			};

@@ -56,9 +56,10 @@ export function getPiInvocation(args: string[]): { command: string; args: string
 }
 
 export function buildPiArgs(spec: JobSpec): string[] {
-	const worker = getWorkerConfig();
+	const worker = getWorkerConfig(spec.profile);
 	const args = ["--mode", "json", "-p", "--no-session", "--no-extensions", "--no-skills"];
 	for (const extension of worker.extensions) args.push("--extension", extension);
+	for (const skill of worker.skills) args.push("--skill", skill);
 	args.push("--tools", worker.tools.join(","));
 	args.push("--append-system-prompt", worker.systemPrompt);
 	if (spec.model) args.push("--model", spec.model);

@@ -3,6 +3,8 @@ name: typescript-best-practices
 description: TypeScript best practices. Use when reading or editing any .ts or .tsx file.
 ---
 
+> **Pi runtime:** Before applying this skill, read [`../PSTACK_PI.md`](../PSTACK_PI.md). That adapter overrides Cursor-specific Task, todo, model, loop, path, and external-action instructions.
+
 # TypeScript best practices
 
 Apply the **type-system-discipline** principle skill first; this skill grounds it in TypeScript syntax.

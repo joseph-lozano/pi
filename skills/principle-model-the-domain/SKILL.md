@@ -4,6 +4,8 @@ description: "Apply when writing stateful logic, or when code branches a lot or 
 disable-model-invocation: true
 ---
 
+> **Pi runtime:** Before applying this skill, read [`../PSTACK_PI.md`](../PSTACK_PI.md). That adapter overrides Cursor-specific Task, todo, model, loop, path, and external-action instructions.
+
 # Model the Domain
 
 Encode the real domain in a data structure instead of scattering it across conditionals.

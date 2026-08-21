@@ -13,7 +13,7 @@ plugin repository.
 Imported into the active Pi `skills/` directory:
 
 - all upstream skills and principles
-- all references and scripts nested under those skills
+- all references and scripts nested under those skills, except the Commander-based PR watcher and Orchestrate CLI
 
 Retained as source material under `vendor/pstack/`:
 
@@ -23,6 +23,8 @@ Retained as source material under `vendor/pstack/`:
 Excluded deliberately:
 
 - `automations/`, including Benny
+- the bundled `scripts/watch-pr/` implementation; this port uses managed `gh pr checks --watch` jobs
+- the Commander-based `scripts/orch/` CLI; local nested Orchestrate remains deferred
 - Cursor cloud-agent runtime behavior
 
 The active skill copies are adapted for Pi and may differ from upstream.

@@ -2,6 +2,7 @@ export type JobKind = "shell" | "pi";
 export type LaunchMode = "blocking" | "background";
 export type WakePolicy = "always" | "never" | "on-failure";
 export type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
+export type WorkerProfileName = "general" | "writer" | "poteto" | "reviewer" | "comment-sicko" | "investigator";
 export type JobStatus = "queued" | "running" | "completed" | "failed" | "stopped";
 export type DeliveryState = "pending" | "claimed" | "injected" | "none";
 
@@ -32,6 +33,9 @@ export interface JobSpec {
 	command?: string;
 	prompt?: string;
 	emoji?: string;
+	profile?: WorkerProfileName;
+	role?: "code" | "judgment" | "exploration" | "synthesis" | "review" | "arena" | "architect" | "swarm";
+	panelIndex?: number;
 	model?: string;
 	thinking?: ThinkingLevel;
 }
