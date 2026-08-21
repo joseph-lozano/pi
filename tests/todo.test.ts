@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { layoutTodoCatalog } from "../extensions/todo/catalog";
 import {
 	applyTodoAction,
 	createTodoIdFactory,
@@ -169,5 +170,65 @@ describe("todo state", () => {
 		expect(todoContext(initial)).toContain("[>] todo_a_2: Fix the root cause");
 		expect(todoContext(initial)).toContain("   [ ] todo_a_3: Verify the real surface");
 		expect(todoContext(initial)).toContain("Address items by ID");
+	});
+});
+
+describe("layoutTodoCatalog", () => {
+	test("returns no blocks for an empty list", () => {
+		expect(layoutTodoCatalog([], 40)).toEqual([]);
+	});
+
+	test("marks children, indents them, and shows parent: <id>", () => {
+		const blocks = layoutTodoCatalog(initial, 40);
+		expect(blocks.map((block) => block.id)).toEqual(["todo_a_1", "todo_a_2", "todo_a_3"]);
+		expect(blocks[2]!.child).toBe(true);
+		expect(blocks[0]!.child).toBe(false);
+		expect(blocks[2]!.rows[0]!.startsWith("  ")).toBe(true);
+		expect(blocks[2]!.rows.join("\n")).toContain("parent: todo_a_2");
+		expect(blocks[0]!.rows.join("\n")).not.toContain("parent:");
+	});
+
+	test("emits displayName and the full text when the header is a short label", () => {
+		const item: TodoItem = {
+			id: "todo_a_1",
+			text: "Explain the exact verification mechanism",
+			displayName: "Explain verification",
+			status: "active",
+		};
+		const joined = layoutTodoCatalog([item], 40)[0]!.rows.join("");
+		expect(joined).toContain("displayName: Explain verification");
+		expect(joined).toContain(item.text);
+		expect(joined).not.toContain("(not set)");
+	});
+
+	test("keeps a 2,000-character text untruncated across wrapped rows", () => {
+		const text = "x".repeat(MAX_TODO_TEXT);
+		const blocks = layoutTodoCatalog([{ id: "todo_z_1", text, status: "pending" }], 40);
+		expect(blocks[0]!.rows.length).toBeGreaterThan(1);
+		expect(blocks[0]!.rows.join("")).toContain(text);
+	});
+
+	test("emits note when set", () => {
+		const item: TodoItem = {
+			id: "todo_a_1",
+			text: "Ship it",
+			status: "skipped",
+			note: "already in production",
+		};
+		const joined = layoutTodoCatalog([item], 40)[0]!.rows.join("");
+		expect(joined).toContain("note: already in production");
+	});
+
+	test("caps every row to innerWidth", () => {
+		const innerWidth = 32;
+		const items: TodoItem[] = [
+			{ id: "todo_a_1", text: "x".repeat(MAX_TODO_TEXT), displayName: "Long agent text", status: "pending" },
+			{ id: "todo_a_2", text: "Child with a parent row", status: "active", parentId: "todo_a_1", note: "n".repeat(160) },
+		];
+		const rows = layoutTodoCatalog(items, innerWidth).flatMap((block) => block.rows);
+		expect(rows.length).toBeGreaterThan(0);
+		for (const row of rows) {
+			expect(row.length).toBeLessThanOrEqual(innerWidth);
+		}
 	});
 });
