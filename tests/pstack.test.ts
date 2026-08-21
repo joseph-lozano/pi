@@ -73,15 +73,16 @@ describe("workspace session discovery", () => {
 });
 
 describe("pstack model roles", () => {
-	test("uses the approved workflow roles and five-model panels", () => {
+	test("uses the approved workflow roles and six-model panels", () => {
 		expect(new Set(configuredModelIds())).toEqual(new Set([
 			"xai/grok-4.6",
 			"xai/grok-4.5",
 			"openai-codex/gpt-5.6-sol",
 			"openai-codex/gpt-5.6-luna",
 			"openai-codex/gpt-5.6-terra",
+			"opencode/x-preview-f-free",
 		]));
-		expect(choicesForRole("interrogate-reviewers")).toHaveLength(5);
+		expect(choicesForRole("interrogate-reviewers")).toHaveLength(6);
 		expect(choicesForRole("feature")).toEqual([
 			{ model: "xai/grok-4.6", thinking: "high" },
 		]);
@@ -94,6 +95,7 @@ describe("pstack model roles", () => {
 		expect(choiceForRole("arena-runners", 1)).toEqual({ model: "xai/grok-4.5", thinking: "high" });
 		expect(choiceForRole("arena-runners", 2)).toEqual({ model: "openai-codex/gpt-5.6-sol", thinking: "max" });
 		expect(choiceForRole("arena-runners", 4)).toEqual({ model: "openai-codex/gpt-5.6-terra", thinking: "high" });
+		expect(choiceForRole("arena-runners", 5)).toEqual({ model: "opencode/x-preview-f-free", thinking: "max" });
 	});
 
 	test("reports and enforces unavailable configured models", () => {
@@ -102,6 +104,7 @@ describe("pstack model roles", () => {
 			"openai-codex/gpt-5.6-luna",
 			"xai/grok-4.5",
 			"openai-codex/gpt-5.6-terra",
+			"opencode/x-preview-f-free",
 		]);
 		expect(missingConfiguredModels(configuredModelIds())).toEqual([]);
 		setPstackAvailableModels(["openai-codex/gpt-5.6-sol"]);

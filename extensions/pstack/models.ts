@@ -53,7 +53,12 @@ const TERRA: PstackModelChoice = {
 	thinking: "high",
 };
 
-const PANEL = [GROK_46, GROK_45, SOL, LUNA, TERRA] as const;
+const OX_ALPHA_FREE: PstackModelChoice = {
+	model: "opencode/x-preview-f-free",
+	thinking: "max",
+};
+
+const PANEL = [GROK_46, GROK_45, SOL, LUNA, TERRA, OX_ALPHA_FREE] as const;
 
 /** Static pstack model policy, adapted from Jesse Hanley's published role split. */
 export const PSTACK_MODELS: Record<PstackModelRole, PstackConfiguredChoice | readonly PstackConfiguredChoice[]> = {
