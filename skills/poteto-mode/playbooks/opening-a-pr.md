@@ -1,11 +1,12 @@
 ### Opening a PR
 
-Invoked at the end of every other playbook.
+**Prepare locally, then stop at the external-action gate.** This step never authorizes a push or PR mutation.
 
-**Worktree.** Work from a git worktree off main; subagents inherit it. Multiple `Task` calls on the same branch each get their own worktree, or `git fetch && git reset --hard origin/<branch>` between them. Dirty branch with unrelated work: patch out, fresh worktree, apply. Snarled worktree: reset from main, redo minimally.
+1. Read the complete diff and run the repository's real verification.
+2. Apply **unslop** to commit and PR prose and run `/skill:no-comments` over comments in the changed code.
+3. Keep the proposed change small and ordered. If dependent follow-ups exist, describe their intended order without assuming Graphite.
+4. Draft the exact branch push, PR title, PR body, base branch, and any labels or reviewers.
+5. Present that complete content and wait for explicit user approval.
+6. Only after approval, perform exactly the approved external actions and verify the resulting remote PR with `gh pr view`.
 
-**Commits.** Commit liberally; rebase into small, ordered commits before opening PRs. Each commit is a future PR: landable, ordered to tell the story. Amend when the fix belongs in a just-made commit; new commit when separable.
-
-**PRs.** `/deslop` the diff before commit; `/no-comments` the diff before review; apply the **unslop** skill to the PR description and commit bodies. Small PRs, 5 narrow over 1 fat; stack follow-ups, branch off main only for genuinely independent work. For stacked PRs, use whatever stacking tool your team uses; the principle is small, ordered slices with the stack visible to reviewers. `gh pr view <number>` before referencing PR status. Rebase on `main` before substantial stack work. No `## Summary` / `## Test plan` boilerplate on small PRs; commit bodies don't restate the subject. After opening, run Cursor's built-in **babysit** skill; push back when feedback drifts from intent.
-
-A subagent that opens a PR runs `interrogate`, `/deslop`, and `/no-comments`, returns the URL, and does NOT babysit. Return to the parent.
+**Reply before approval:** local verification, diff summary, and the exact proposed push and PR content. Do not claim a PR exists.

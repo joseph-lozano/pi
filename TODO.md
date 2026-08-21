@@ -6,7 +6,8 @@ Researched version:
 
 - Plugin version: `0.14.1`
 - Commit: `51a96e0dd838404da19ba83dc70aa21eef71f868`
-- Inventory: 44 skills, 23 playbooks, 21 principles, 2 agents
+- Inventory: 44 upstream skills, 23 playbooks, 21 principles, 2 agents
+- Acceptance evidence: [`research/pstack-smoke-tests.md`](research/pstack-smoke-tests.md)
 
 ## Scope
 
@@ -71,7 +72,7 @@ The current todo implementation already supplies stable IDs, one-level subtasks,
 
 - [x] Add a `profile` parameter to `job.start`.
 - [x] Define a general worker profile.
-- [x] Define a `poteto-agent` profile that loads Poteto Mode before working.
+- [x] Define a `poteto-agent` profile that loads the one-shot Poteto worker skill without coordinator-only todo or job requirements.
 - [x] Define a read-only reviewer profile.
 - [x] Define the `Comment Sicko` profile.
 - [x] Define an investigator profile for source and optional external evidence.

@@ -38,7 +38,7 @@ export function getWorkerConfig(profile: WorkerProfileName = "general"): WorkerC
 			config = {
 				tools: WRITE_TOOLS,
 				extensions: WEB_EXTENSIONS,
-				skills: [pathFromHere("../../skills/poteto-mode")],
+				skills: [pathFromHere("../../skills/poteto-worker")],
 				systemPrompt: `${profileText("poteto")}\n\n${readFileSync(pathFromHere("../../vendor/pstack/agents/poteto-agent.md"), "utf8").trim()}`,
 			};
 			break;

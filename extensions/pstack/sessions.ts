@@ -1,7 +1,8 @@
-import { closeSync, existsSync, openSync, readFileSync, readSync, readdirSync, statSync } from "node:fs";
-import { basename, dirname, join } from "node:path";
+import { closeSync, lstatSync, openSync, readSync, readdirSync, realpathSync, statSync } from "node:fs";
+import { basename, dirname, join, resolve } from "node:path";
 
 const MAX_TAIL_BYTES = 2 * 1024 * 1024;
+const MAX_HEADER_BYTES = 64 * 1024;
 const MAX_TEXT = 1_000;
 
 export interface SessionFileInfo {
@@ -12,9 +13,9 @@ export interface SessionFileInfo {
 	current: boolean;
 }
 
-function tailText(path: string): string {
+function boundedText(path: string, maxBytes: number): string {
 	const size = statSync(path).size;
-	const length = Math.min(size, MAX_TAIL_BYTES);
+	const length = Math.min(size, maxBytes);
 	const offset = size - length;
 	const buffer = Buffer.alloc(length);
 	const fd = openSync(path, "r");
@@ -25,6 +26,38 @@ function tailText(path: string): string {
 	}
 	const text = buffer.toString("utf8");
 	return offset > 0 ? text.slice(text.indexOf("\n") + 1) : text;
+}
+
+function canonicalCwd(path: string): string {
+	try {
+		return realpathSync(path);
+	} catch {
+		return resolve(path);
+	}
+}
+
+function sessionCwd(path: string): string | undefined {
+	const fd = openSync(path, "r");
+	try {
+		const buffer = Buffer.alloc(Math.min(statSync(path).size, MAX_HEADER_BYTES));
+		readSync(fd, buffer, 0, buffer.length, 0);
+		const first = buffer.toString("utf8").split("\n", 1)[0];
+		if (!first) return undefined;
+		const header = JSON.parse(first) as { type?: unknown; cwd?: unknown };
+		return header.type === "session" && typeof header.cwd === "string" ? canonicalCwd(header.cwd) : undefined;
+	} catch {
+		return undefined;
+	} finally {
+		closeSync(fd);
+	}
+}
+
+function regularFile(path: string): boolean {
+	try {
+		return lstatSync(path).isFile();
+	} catch {
+		return false;
+	}
 }
 
 function contentText(content: unknown): string {
@@ -42,29 +75,34 @@ function oneLine(value: string): string {
 	return compact.length > MAX_TEXT ? `${compact.slice(0, MAX_TEXT)}…` : compact;
 }
 
-export function listWorkspaceSessions(currentFile: string, includeCurrent = false): SessionFileInfo[] {
-	const directory = dirname(currentFile);
+export function listWorkspaceSessions(currentFile: string, workspaceCwd: string, includeCurrent = false): SessionFileInfo[] {
+	const directory = realpathSync(dirname(currentFile));
 	const current = basename(currentFile);
-	return readdirSync(directory)
-		.filter((name) => name.endsWith(".jsonl") && (includeCurrent || name !== current))
-		.map((name) => {
-			const path = join(directory, name);
+	const expectedCwd = canonicalCwd(workspaceCwd);
+	return readdirSync(directory, { withFileTypes: true })
+		.filter((entry) => entry.isFile() && entry.name.endsWith(".jsonl") && (includeCurrent || entry.name !== current))
+		.flatMap((entry) => {
+			const path = join(directory, entry.name);
+			if (sessionCwd(path) !== expectedCwd) return [];
 			const stat = statSync(path);
-			return { id: name.slice(0, -6), path, modifiedAt: stat.mtimeMs, size: stat.size, current: name === current };
+			return [{ id: entry.name.slice(0, -6), path, modifiedAt: stat.mtimeMs, size: stat.size, current: entry.name === current }];
 		})
 		.sort((a, b) => b.modifiedAt - a.modifiedAt);
 }
 
-export function resolveSessionFile(currentFile: string, id: string): string {
+export function resolveSessionFile(currentFile: string, workspaceCwd: string, id: string): string {
 	if (!/^[A-Za-z0-9._-]+$/.test(id)) throw new Error("invalid session id");
-	const path = join(dirname(currentFile), id.endsWith(".jsonl") ? id : `${id}.jsonl`);
-	if (!existsSync(path)) throw new Error(`unknown workspace session: ${id}`);
+	const directory = realpathSync(dirname(currentFile));
+	const path = join(directory, id.endsWith(".jsonl") ? id : `${id}.jsonl`);
+	if (!regularFile(path) || dirname(realpathSync(path)) !== directory || sessionCwd(path) !== canonicalCwd(workspaceCwd)) {
+		throw new Error(`unknown workspace session: ${id}`);
+	}
 	return path;
 }
 
 export function sessionTail(path: string, limit = 20): string {
 	const rows: string[] = [];
-	for (const line of tailText(path).split("\n")) {
+	for (const line of boundedText(path, MAX_TAIL_BYTES).split("\n")) {
 		if (!line.trim()) continue;
 		try {
 			const entry = JSON.parse(line) as {
@@ -89,23 +127,30 @@ export function sessionTail(path: string, limit = 20): string {
 	return rows.slice(-Math.max(1, Math.min(limit, 50))).join("\n") || "No readable conversation entries in the selected tail.";
 }
 
-export function listJobLogs(currentFile: string): SessionFileInfo[] {
-	const directory = join(dirname(currentFile), "background-jobs");
-	if (!existsSync(directory)) return [];
-	return readdirSync(directory)
-		.filter((name) => name.endsWith(".log"))
-		.map((name) => {
-			const path = join(directory, name);
+export function listJobLogs(currentFile: string, allowedIds: readonly string[]): SessionFileInfo[] {
+	const directory = join(realpathSync(dirname(currentFile)), "background-jobs");
+	try {
+		if (!lstatSync(directory).isDirectory()) return [];
+	} catch {
+		return [];
+	}
+	const allowed = new Set(allowedIds);
+	return readdirSync(directory, { withFileTypes: true })
+		.filter((entry) => entry.isFile() && entry.name.endsWith(".log") && allowed.has(entry.name.slice(0, -4)))
+		.map((entry) => {
+			const path = join(directory, entry.name);
 			const stat = statSync(path);
-			return { id: name.slice(0, -4), path, modifiedAt: stat.mtimeMs, size: stat.size, current: false };
+			return { id: entry.name.slice(0, -4), path, modifiedAt: stat.mtimeMs, size: stat.size, current: false };
 		})
 		.sort((a, b) => b.modifiedAt - a.modifiedAt);
 }
 
-export function jobLogTail(currentFile: string, id: string, maxChars = 12_000): string {
+export function jobLogTail(currentFile: string, allowedIds: readonly string[], id: string, maxChars = 12_000): string {
 	if (!/^job_[A-Za-z0-9_]+$/.test(id)) throw new Error("invalid job id");
-	const path = join(dirname(currentFile), "background-jobs", `${id}.log`);
-	if (!existsSync(path)) throw new Error(`unknown workspace job log: ${id}`);
-	const text = readFileSync(path, "utf8");
+	if (!allowedIds.includes(id)) throw new Error(`unknown current-session job log: ${id}`);
+	const directory = join(realpathSync(dirname(currentFile)), "background-jobs");
+	const path = join(directory, `${id}.log`);
+	if (!regularFile(path) || dirname(realpathSync(path)) !== realpathSync(directory)) throw new Error(`unknown current-session job log: ${id}`);
+	const text = boundedText(path, Math.max(MAX_TAIL_BYTES, maxChars * 4));
 	return text.length > maxChars ? `[earlier log omitted]\n${text.slice(-maxChars)}` : text;
 }

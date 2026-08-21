@@ -73,7 +73,7 @@ Order phases so infrastructure and shared types land first (the **foundational-t
 
 For changes touching existing code, apply the **redesign-from-first-principles** principle skill: if we'd built this with the new requirement on day one, what would it look like? Redesign holistically; deliver incrementally.
 
-If a phase creates or edits a skill, the phase instructs the implementer to use the **create-skill** skill (Cursor's built-in for authoring SKILL.md files).
+If a phase creates or edits a skill, instruct the implementer to use `/skill:create-skill`.
 
 ## 5. Verification per phase
 
@@ -83,8 +83,8 @@ Each phase needs both:
 
 **Runtime.** Exercise the feature on the matching surface via the relevant control skill:
 
-- Browser / Electron / Web UIs: the `control-ui` skill from the `cursor-team-kit` plugin.
-- CLIs and TUIs: the `control-cli` skill from the `cursor-team-kit` plugin.
+- Browser / Electron / Web UIs: the project's Playwright, Cypress, WebDriver, or CDP verification skill; otherwise report the missing driver.
+- CLIs and TUIs: the project's PTY or integration harness; use Herdr only when explicitly requested and available.
 - Native mobile: whatever simulator-driving skill your team has.
 - No control skill for the touched surface: flag it in the plan.
 
@@ -98,7 +98,7 @@ In the overview, name which poteto-mode non-negotiables the implementer must app
 - the **interrogate** skill for adversarial review on contested designs before shipping.
 - `/deslop` over each diff before commit. the **unslop** skill over any prose surface.
 - the **show-me-your-work** skill to keep a decision trail when the plan is large enough to need an auditable record.
-- Cursor's built-in **babysit** skill after opening the PR.
+- Any babysit implementation other than this port's `playbooks/babysit.md`.
 
 ## 7. Hand back
 

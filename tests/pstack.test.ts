@@ -1,10 +1,11 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { POTETO_MODE_ENTRY, potetoSystemPrompt, restorePotetoMode } from "../extensions/pstack/mode";
 import { choiceForRole, choicesForRole, configuredModelIds, missingConfiguredModels } from "../extensions/pstack/models";
 import { jobLogTail, listJobLogs, listWorkspaceSessions, resolveSessionFile, sessionTail } from "../extensions/pstack/sessions";
+import { isPstackModelAvailable, setPstackAvailableModels } from "../extensions/pstack/shared";
 
 const roots: string[] = [];
 afterEach(() => {
@@ -39,15 +40,19 @@ describe("workspace session discovery", () => {
 		roots.push(root);
 		const current = join(root, "current.jsonl");
 		const prior = join(root, "prior.jsonl");
-		writeFileSync(current, "");
+		const unrelated = join(root, "unrelated.jsonl");
+		writeFileSync(current, `${JSON.stringify({ type: "session", cwd: root })}\n`);
 		writeFileSync(prior, [
+			JSON.stringify({ type: "session", cwd: root }),
 			JSON.stringify({ type: "message", message: { role: "user", content: [{ type: "text", text: "previous request" }] } }),
 			JSON.stringify({ type: "message", message: { role: "assistant", content: [{ type: "text", text: "previous answer" }] } }),
 		].join("\n"));
-		const listed = listWorkspaceSessions(current);
+		writeFileSync(unrelated, `${JSON.stringify({ type: "session", cwd: "/unrelated/workspace" })}\n`);
+		const listed = listWorkspaceSessions(current, root);
 		expect(listed.map((entry) => entry.id)).toEqual(["prior"]);
-		expect(resolveSessionFile(current, "prior")).toBe(prior);
-		expect(() => resolveSessionFile(current, "../other")).toThrow("invalid session id");
+		expect(resolveSessionFile(current, root, "prior")).toBe(prior);
+		expect(() => resolveSessionFile(current, root, "unrelated")).toThrow("unknown workspace session");
+		expect(() => resolveSessionFile(current, root, "../other")).toThrow("invalid session id");
 		expect(sessionTail(prior, 1)).toBe("assistant: previous answer");
 	});
 
@@ -55,12 +60,15 @@ describe("workspace session discovery", () => {
 		const root = mkdtempSync(join(tmpdir(), "pstack-jobs-"));
 		roots.push(root);
 		const current = join(root, "current.jsonl");
-		writeFileSync(current, "");
+		writeFileSync(current, `${JSON.stringify({ type: "session", cwd: root })}\n`);
 		mkdirSync(join(root, "background-jobs"));
 		writeFileSync(join(root, "background-jobs", "job_abc_1.log"), "worker evidence");
-		expect(listJobLogs(current).map((entry) => entry.id)).toEqual(["job_abc_1"]);
-		expect(jobLogTail(current, "job_abc_1")).toBe("worker evidence");
-		expect(() => jobLogTail(current, "../secret")).toThrow("invalid job id");
+		writeFileSync(join(root, "secret.log"), "secret");
+		symlinkSync(join(root, "secret.log"), join(root, "background-jobs", "job_escape_1.log"));
+		expect(listJobLogs(current, ["job_abc_1", "job_escape_1"]).map((entry) => entry.id)).toEqual(["job_abc_1"]);
+		expect(jobLogTail(current, ["job_abc_1"], "job_abc_1")).toBe("worker evidence");
+		expect(() => jobLogTail(current, ["job_escape_1"], "job_escape_1")).toThrow("unknown current-session job log");
+		expect(() => jobLogTail(current, [], "../secret")).toThrow("invalid job id");
 	});
 });
 
@@ -77,8 +85,11 @@ describe("pstack model roles", () => {
 		expect(choiceForRole("arena", 1)).toEqual({ model: "xai/grok-4.6", thinking: "high" });
 	});
 
-	test("reports unavailable configured models", () => {
+	test("reports and enforces unavailable configured models", () => {
 		expect(missingConfiguredModels(["openai-codex/gpt-5.6-sol"])).toEqual(["xai/grok-4.6"]);
 		expect(missingConfiguredModels(configuredModelIds())).toEqual([]);
+		setPstackAvailableModels(["openai-codex/gpt-5.6-sol"]);
+		expect(isPstackModelAvailable("openai-codex/gpt-5.6-sol")).toBe(true);
+		expect(isPstackModelAvailable("xai/grok-4.6")).toBe(false);
 	});
 });

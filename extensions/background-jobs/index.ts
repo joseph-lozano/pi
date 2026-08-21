@@ -8,6 +8,7 @@ import { JobLogOverlay } from "./log-overlay";
 import { getBackgroundJobManager, shouldPreserveJobsOnShutdown } from "./manager";
 import { BackgroundJobsOverlay } from "./overlay";
 import { choiceForRole } from "../pstack/models";
+import { isPstackModelAvailable } from "../pstack/shared";
 import { jobIdentity, resolveWorkerRuntime } from "./worker";
 import type { JobRecord, JobSpec, PersistedJobRecord } from "./types";
 
@@ -180,6 +181,9 @@ export default function backgroundJobsExtension(pi: ExtensionAPI) {
 				parentRuntime.model && parentRuntime.thinking
 					? { model: parentRuntime.model, thinking: parentRuntime.thinking }
 					: undefined) : undefined;
+			if (params.role && roleChoice && !isPstackModelAvailable(roleChoice.model)) {
+				throw new Error(`Pstack role ${params.role} resolves to unavailable model: ${roleChoice.model}`);
+			}
 			const runtime = kind === "pi"
 				? resolveWorkerRuntime(
 					{ model: params.model ?? roleChoice?.model, thinking: params.thinking ?? roleChoice?.thinking },

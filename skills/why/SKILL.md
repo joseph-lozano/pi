@@ -111,7 +111,7 @@ Map each available evidence tool to one category:
 6. Error / exception tracking
 7. Product analytics warehouse
 
-Source control is available through git and `gh`. For the other six, classify using registered tool names and schemas. If a tool could fit more than one category, choose the one matching its primary evidence. Record ambiguous cases in the coverage map.
+The parent owns source-control collection through git and `gh`, because read-only investigator workers intentionally have no unrestricted shell. Gather the bounded git history, PR metadata, and review evidence first, then pass that material to synthesis as the source-control category. For the other six, classify using registered tool names and schemas. If a tool could fit more than one category, choose the one matching its primary evidence. Record ambiguous cases in the coverage map.
 
 Aim for a complete **coverage map**, not a minimal one. A null result from an issue tracker is evidence the decision was not ticketed, a useful fact in itself. Document the null, don't skip the search.
 
@@ -130,7 +130,7 @@ Spawn one investigator per category that has a matching available tool. Each own
 
 Each entry lists what the category physically contains and the kind of "why" it uniquely surfaces. Use it to know what to expect back, how to name a gap when a category returns empty, and (only in the rare provably-irrelevant case) to justify a skip. Every category overlaps, but each owns a kind of evidence the others cannot recover.
 
-1. **Source control investigator**. Git history, `gh` for PRs, code comments, tests. Always spawn; the only guaranteed source. Best at surfacing *implementation-time rationale captured during review*. PR descriptions stating the problem, review threads debating alternatives, inline comments encoding non-obvious constraints, test names that encode motivating edge cases, and commit messages linking tickets or incidents. Most trustworthy because it ties directly to the diff that shipped.
+1. **Source control evidence, parent-owned.** Git history, `gh` for PRs, code comments, tests. Always gather; this is the only guaranteed source. Do not ask the sandboxed investigator profile to execute git or gh. Best at surfacing *implementation-time rationale captured during review*. PR descriptions stating the problem, review threads debating alternatives, inline comments encoding non-obvious constraints, test names that encode motivating edge cases, and commit messages linking tickets or incidents. Most trustworthy because it ties directly to the diff that shipped.
 
 2. **Issue / ticket tracker investigator** (e.g. Linear, Jira, GitHub Issues, Plane, Shortcut MCP). Tickets, project docs, status updates, spec attachments. Best at surfacing *the product or business forcing function*. Customer requests ("Acme needs X for their SOC2 audit"), compliance deadlines, parent-initiative framing ("Q3 enterprise readiness"), ticket-level scope changes, and labels that categorize the motivation (`customer:*`, `incident-followup`, `compliance`, `perf-regression`). Strongest when the why is external to engineering.
 

@@ -1,12 +1,13 @@
-const REGISTRY_KEY = Symbol.for("pi.pstack.mode-state.v1");
+const REGISTRY_KEY = Symbol.for("pi.pstack.runtime-state.v1");
 
-interface PstackModeRegistry {
+interface PstackRuntimeRegistry {
 	enabled: boolean;
+	availableModels?: Set<string>;
 }
 
-type RegistryGlobal = typeof globalThis & { [REGISTRY_KEY]?: PstackModeRegistry };
+type RegistryGlobal = typeof globalThis & { [REGISTRY_KEY]?: PstackRuntimeRegistry };
 
-function registry(): PstackModeRegistry {
+function registry(): PstackRuntimeRegistry {
 	const global = globalThis as RegistryGlobal;
 	return global[REGISTRY_KEY] ??= { enabled: false };
 }
@@ -17,4 +18,13 @@ export function isPotetoModeEnabled(): boolean {
 
 export function setPotetoModeEnabled(enabled: boolean): void {
 	registry().enabled = enabled;
+}
+
+export function setPstackAvailableModels(ids: readonly string[]): void {
+	registry().availableModels = new Set(ids);
+}
+
+export function isPstackModelAvailable(id: string): boolean {
+	const available = registry().availableModels;
+	return available ? available.has(id) : true;
 }

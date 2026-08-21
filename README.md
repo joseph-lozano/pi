@@ -120,6 +120,27 @@ Lists are limited to 50 items and text/notes to 160 characters. Actions are
 calls use a compact one-line renderer. Large lists show a terminal-width-
 bounded widget window around the active or first pending item.
 
+### Pstack (`pstack/` + `skills/`)
+
+The vendored pstack skills are pinned and attributed under `vendor/pstack/`.
+`/poteto-mode [task]` enables the branch-persisted mode; `/poteto-mode off`
+disables it. Active mode injects the Poteto router, requires verbatim playbook
+todos, and appears as `🥔 poteto` in the existing footer. Other workflows use
+Pi's native `/skill:<name>` command, for example `/skill:how`.
+
+Pstack delegates through the managed `job` tool. Pi workers support `general`,
+`writer`, `poteto`, `reviewer`, `comment-sicko`, and `investigator` profiles.
+Reviewer and investigator profiles omit `bash`, `edit`, and `write`. Static
+model roles live in `extensions/pstack/models.ts`; `job.role` and optional
+`panelIndex` route work across the configured Sol and Grok models.
+
+`pstack_sessions` lists or reads bounded tails from sessions and worker logs in
+the current workspace only. Historical content is labeled untrusted. PR checks
+use managed `gh pr checks --watch` shell jobs. Benny, cloud agents, Graphite
+shipping, nested Orchestrate, and the upstream Commander-based CLIs are not
+included. Every external mutation still requires explicit approval of the
+exact action or content.
+
 ### One-off asides (`btw/`)
 
 `/btw <question>` asks the active model a one-off question using the current
@@ -132,7 +153,7 @@ conversation.
 Always-on B1 footer (see `prototypes/footer.html`):
 
 - **Row 1:** cwd · branch · git `+/−` (numstat) · background-job emoji array (`[]` when idle) · phase anim on the right
-- **Row 2:** context ring · cache (last-turn db icon + session %) · provider · model · thinking · fast
+- **Row 2:** context ring · cache (last-turn db icon + session %) · Poteto Mode · provider · model · thinking · fast
 - **Phases:** idle `●` · think `sand` · tool `line` (includes edits) · stream pulse `●`  
 - **Whimsy** on the working line only (spinner upright, message italic)  
 - Git refreshes after `edit`/`write` and when the agent hands back to you

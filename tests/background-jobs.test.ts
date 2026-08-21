@@ -81,6 +81,28 @@ describe("JobManager lifecycle and delivery", () => {
 		expect(stopped.delivery).toBe("none");
 	});
 
+	test("allows only one writing worker per canonical checkout", async () => {
+		const manager = new JobManager({
+			logRoot: root(),
+			stopGraceMs: 50,
+			piInvocation: () => ({ command: "/bin/sh", args: ["-lc", "sleep 30"] }),
+		});
+		const spec: JobSpec = {
+			kind: "pi",
+			mode: "background",
+			wake: "never",
+			cwd: process.cwd(),
+			prompt: "write",
+			profile: "writer",
+		};
+		const first = manager.start(owner, spec);
+		expect(() => manager.start(owner, { ...spec, profile: "poteto" })).toThrow("already owns checkout");
+		await manager.stop(first.id, owner.sessionId);
+		const next = manager.start(owner, spec);
+		expect(next.id).not.toBe(first.id);
+		await manager.stop(next.id, owner.sessionId);
+	});
+
 	test("wakes, rearms, and cancels a managed watcher", async () => {
 		const manager = new JobManager({ logRoot: root(), stopGraceMs: 50 });
 		const first = manager.start(owner, shellSpec("sleep 0.01; printf event", { wake: "always" }));
@@ -167,7 +189,7 @@ describe("Pi worker", () => {
 			profile: "poteto",
 		});
 		const skillPaths = potetoArgs.flatMap((arg, index) => potetoArgs[index - 1] === "--skill" ? [arg] : []);
-		expect(skillPaths.some((path) => path.endsWith("/skills/poteto-mode"))).toBe(true);
+		expect(skillPaths.some((path) => path.endsWith("/skills/poteto-worker"))).toBe(true);
 		expect(getWorkerConfig("poteto").systemPrompt).toContain("pstack implementation worker");
 
 		for (const profile of ["reviewer", "comment-sicko", "investigator"] as const) {

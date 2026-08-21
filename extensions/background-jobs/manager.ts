@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from "node:child_process";
-import { createWriteStream, mkdirSync } from "node:fs";
+import { createWriteStream, existsSync, mkdirSync, realpathSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { PiJsonProjector } from "./pi-json";
@@ -53,6 +53,16 @@ export function getPiInvocation(args: string[]): { command: string; args: string
 	const executable = basename(process.execPath).toLowerCase();
 	if (!/^(node|bun)(\.exe)?$/.test(executable)) return { command: process.execPath, args };
 	return { command: "pi", args };
+}
+
+export function getShellInvocation(command: string): { command: string; args: string[] } {
+	const configured = process.env.SHELL;
+	const shell = configured?.startsWith("/") && existsSync(configured) ? configured : "/bin/sh";
+	if (basename(shell) === "fish") {
+		// Let the user's login shell hydrate PATH, then preserve POSIX command syntax.
+		return { command: shell, args: ["-lc", 'exec /bin/sh -c "$argv[1]"', "--", command] };
+	}
+	return { command: shell, args: ["-lc", command] };
 }
 
 export function buildPiArgs(spec: JobSpec): string[] {
@@ -121,6 +131,20 @@ export class JobManager {
 	}
 
 	start(owner: JobOwner, spec: JobSpec, claimed = false): JobRecord {
+		const cwd = realpathSync(spec.cwd);
+		if (!statSync(cwd).isDirectory()) throw new Error(`Job cwd is not a directory: ${cwd}`);
+		spec = { ...spec, cwd };
+		const writingProfile = (profile: JobSpec["profile"]) => !profile || profile === "general" || profile === "writer" || profile === "poteto";
+		const writing = spec.kind === "pi" && writingProfile(spec.profile);
+		if (writing) {
+			const conflict = [...this.jobs.values()].find((job) =>
+				job.spec.kind === "pi"
+				&& writingProfile(job.spec.profile)
+				&& job.spec.cwd === cwd
+				&& (job.status === "queued" || job.status === "running"),
+			);
+			if (conflict) throw new Error(`Writing worker ${conflict.id} already owns checkout: ${cwd}`);
+		}
 		const id = `job_${Date.now().toString(36)}_${(++this.sequence).toString(36)}`;
 		const ownerLogRoot = owner.sessionFile
 			? join(dirname(owner.sessionFile), "background-jobs")
@@ -142,8 +166,8 @@ export class JobManager {
 		};
 		this.jobs.set(id, job);
 
-		const args = spec.kind === "pi" ? buildPiArgs(spec) : ["-lc", spec.command ?? ""];
-		const invocation = spec.kind === "pi" ? this.piInvocation(args) : { command: "/bin/sh", args };
+		const args = spec.kind === "pi" ? buildPiArgs(spec) : [];
+		const invocation = spec.kind === "pi" ? this.piInvocation(args) : getShellInvocation(spec.command ?? "");
 		const log = createWriteStream(logPath, { flags: "a", mode: 0o600 });
 		const output = new ByteTail(this.outputTailBytes);
 		const stderr = new ByteTail(this.outputTailBytes);

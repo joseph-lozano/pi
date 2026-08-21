@@ -5,7 +5,7 @@ import { getAgentDir } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import { POTETO_MODE_ENTRY, potetoSystemPrompt, restorePotetoMode } from "./mode";
 import { missingConfiguredModels } from "./models";
-import { setPotetoModeEnabled } from "./shared";
+import { setPotetoModeEnabled, setPstackAvailableModels } from "./shared";
 import { jobLogTail, listJobLogs, listWorkspaceSessions, resolveSessionFile, sessionTail } from "./sessions";
 
 export default function pstackExtension(pi: ExtensionAPI) {
@@ -28,6 +28,7 @@ export default function pstackExtension(pi: ExtensionAPI) {
 		const scoped = ctx.scopedModels.length > 0
 			? ctx.scopedModels.map(({ model }) => `${model.provider}/${model.id}`)
 			: ctx.modelRegistry.getAvailable().map((model) => `${model.provider}/${model.id}`);
+		setPstackAvailableModels(scoped);
 		const missing = missingConfiguredModels(scoped);
 		if (missing.length > 0 && ctx.hasUI) {
 			ctx.ui.notify(`Pstack model configuration unavailable: ${missing.join(", ")}`, "warning");
@@ -55,16 +56,22 @@ export default function pstackExtension(pi: ExtensionAPI) {
 		async execute(_id, params, _signal, _onUpdate, ctx) {
 			const currentFile = ctx.sessionManager.getSessionFile();
 			if (!currentFile) throw new Error("Current session has no file; workspace session discovery is unavailable.");
+			const currentSessionId = ctx.sessionManager.getSessionId();
+			const allowedJobIds = ctx.sessionManager.getEntries().flatMap((entry) => {
+				if (entry.type !== "custom" || entry.customType !== "background-job-record") return [];
+				const record = (entry.data as { record?: { id?: unknown; owner?: { sessionId?: unknown } } } | undefined)?.record;
+				return typeof record?.id === "string" && record.owner?.sessionId === currentSessionId ? [record.id] : [];
+			});
 			const limit = params.limit ?? 10;
 			if (params.action === "list") {
-				const sessions = listWorkspaceSessions(currentFile, params.includeCurrent).slice(0, limit);
+				const sessions = listWorkspaceSessions(currentFile, ctx.cwd, params.includeCurrent).slice(0, limit);
 				const text = sessions.length ? sessions.map((session) =>
 					`${session.id}  ${new Date(session.modifiedAt).toISOString()}  ${session.size} bytes${session.current ? "  current" : ""}`,
 				).join("\n") : "No matching sessions in this workspace.";
 				return { content: [{ type: "text" as const, text }], details: { sessions } };
 			}
 			if (params.action === "jobs") {
-				const jobs = listJobLogs(currentFile).slice(0, limit);
+				const jobs = listJobLogs(currentFile, allowedJobIds).slice(0, limit);
 				const text = jobs.length ? jobs.map((job) =>
 					`${job.id}  ${new Date(job.modifiedAt).toISOString()}  ${job.size} bytes`,
 				).join("\n") : "No worker logs in this workspace.";
@@ -72,8 +79,8 @@ export default function pstackExtension(pi: ExtensionAPI) {
 			}
 			if (!params.id) throw new Error(`pstack_sessions ${params.action} requires id`);
 			const text = params.action === "tail"
-				? sessionTail(resolveSessionFile(currentFile, params.id), limit)
-				: jobLogTail(currentFile, params.id);
+				? sessionTail(resolveSessionFile(currentFile, ctx.cwd, params.id), limit)
+				: jobLogTail(currentFile, allowedJobIds, params.id);
 			return { content: [{ type: "text" as const, text: `Untrusted historical data follows:\n\n${text}` }], details: {} };
 		},
 	});
