@@ -12,6 +12,7 @@
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import Exa from "exa-js";
+import { Container, Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 
 function textResult(text: string, details: Record<string, unknown> = {}) {
@@ -46,6 +47,12 @@ function clip(s: string, max = 280): string {
 	return s.length > max ? `${s.slice(0, max - 3).trimEnd()}...` : s;
 }
 
+function formatBytes(bytes: number): string {
+	if (bytes < 1024) return `${bytes} B`;
+	if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+	return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export default function exaExtension(pi: ExtensionAPI) {
 	pi.registerTool({
 		name: "exa_search",
@@ -68,6 +75,35 @@ export default function exaExtension(pi: ExtensionAPI) {
 				}),
 			),
 		}),
+		renderCall(args, theme, context) {
+			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
+			const summary = (context.state as { summary?: string }).summary;
+			text.setText(
+				theme.fg("toolTitle", theme.bold("exa_search ")) +
+					theme.fg("accent", args.query) +
+					(summary ? theme.fg("dim", ` (${summary})`) : ""),
+			);
+			return text;
+		},
+		renderResult(result, { expanded }, theme, context) {
+			const content = result.content.find((item) => item.type === "text");
+			const value = content?.type === "text" ? content.text : "";
+			const count = result.details?.count;
+			if (!context.isError && !result.details?.error && typeof count === "number") {
+				const state = context.state as { summary?: string };
+				const summary = `${count} ${count === 1 ? "result" : "results"}`;
+				if (state.summary !== summary) {
+					state.summary = summary;
+					context.invalidate();
+				}
+			}
+			if (!expanded && !context.isError && !result.details?.error) return new Container();
+			return new Text(
+				context.isError || result.details?.error ? theme.fg("error", value) : value,
+				0,
+				0,
+			);
+		},
 		async execute(_toolCallId, params, signal) {
 			try {
 				assertNotAborted(signal);
@@ -139,6 +175,35 @@ export default function exaExtension(pi: ExtensionAPI) {
 				maxItems: 10,
 			}),
 		}),
+		renderCall(args, theme, context) {
+			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
+			const summary = (context.state as { summary?: string }).summary;
+			text.setText(
+				theme.fg("toolTitle", theme.bold("exa_fetch ")) +
+					theme.fg("accent", args.urls.join(", ")) +
+					(summary ? theme.fg("dim", ` (${summary})`) : ""),
+			);
+			return text;
+		},
+		renderResult(result, { expanded }, theme, context) {
+			const content = result.content.find((item) => item.type === "text");
+			const value = content?.type === "text" ? content.text : "";
+			const pages = result.details?.ok;
+			if (!context.isError && !result.details?.error && typeof pages === "number") {
+				const state = context.state as { summary?: string };
+				const summary = `${pages} ${pages === 1 ? "page" : "pages"}, ${formatBytes(Buffer.byteLength(value, "utf8"))}`;
+				if (state.summary !== summary) {
+					state.summary = summary;
+					context.invalidate();
+				}
+			}
+			if (!expanded && !context.isError && !result.details?.error) return new Container();
+			return new Text(
+				context.isError || result.details?.error ? theme.fg("error", value) : value,
+				0,
+				0,
+			);
+		},
 		async execute(_toolCallId, params, signal) {
 			const unique = [...new Set(params.urls.map((u) => u.trim()).filter(Boolean))];
 			if (unique.length === 0) {

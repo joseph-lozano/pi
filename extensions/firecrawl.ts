@@ -12,6 +12,7 @@
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Firecrawl } from "firecrawl";
+import { Container, Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 
 function textResult(text: string, details: Record<string, unknown> = {}) {
@@ -42,6 +43,12 @@ function assertNotAborted(signal?: AbortSignal) {
 		err.name = "AbortError";
 		throw err;
 	}
+}
+
+function formatBytes(bytes: number): string {
+	if (bytes < 1024) return `${bytes} B`;
+	if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+	return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 /** Lean SERP line — never dump full page markdown into search results. */
@@ -92,6 +99,35 @@ export default function firecrawlExtension(pi: ExtensionAPI) {
 				}),
 			),
 		}),
+		renderCall(args, theme, context) {
+			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
+			const summary = (context.state as { summary?: string }).summary;
+			text.setText(
+				theme.fg("toolTitle", theme.bold("firecrawl_search ")) +
+					theme.fg("accent", args.query) +
+					(summary ? theme.fg("dim", ` (${summary})`) : ""),
+			);
+			return text;
+		},
+		renderResult(result, { expanded }, theme, context) {
+			const content = result.content.find((item) => item.type === "text");
+			const value = content?.type === "text" ? content.text : "";
+			const count = result.details?.count;
+			if (!context.isError && !result.details?.error && typeof count === "number") {
+				const state = context.state as { summary?: string };
+				const summary = `${count} ${count === 1 ? "result" : "results"}`;
+				if (state.summary !== summary) {
+					state.summary = summary;
+					context.invalidate();
+				}
+			}
+			if (!expanded && !context.isError && !result.details?.error) return new Container();
+			return new Text(
+				context.isError || result.details?.error ? theme.fg("error", value) : value,
+				0,
+				0,
+			);
+		},
 		async execute(_toolCallId, params, signal) {
 			try {
 				assertNotAborted(signal);
@@ -137,6 +173,34 @@ export default function firecrawlExtension(pi: ExtensionAPI) {
 		parameters: Type.Object({
 			url: Type.String({ description: "URL to fetch" }),
 		}),
+		renderCall(args, theme, context) {
+			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
+			const summary = (context.state as { summary?: string }).summary;
+			text.setText(
+				theme.fg("toolTitle", theme.bold("firecrawl_fetch ")) +
+					theme.fg("accent", args.url) +
+					(summary ? theme.fg("dim", ` (${summary})`) : ""),
+			);
+			return text;
+		},
+		renderResult(result, { expanded }, theme, context) {
+			const content = result.content.find((item) => item.type === "text");
+			const value = content?.type === "text" ? content.text : "";
+			if (!context.isError && !result.details?.error) {
+				const state = context.state as { summary?: string };
+				const summary = formatBytes(Buffer.byteLength(value, "utf8"));
+				if (state.summary !== summary) {
+					state.summary = summary;
+					context.invalidate();
+				}
+			}
+			if (!expanded && !context.isError && !result.details?.error) return new Container();
+			return new Text(
+				context.isError || result.details?.error ? theme.fg("error", value) : value,
+				0,
+				0,
+			);
+		},
 		async execute(_toolCallId, params, signal) {
 			try {
 				assertNotAborted(signal);
