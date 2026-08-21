@@ -2,6 +2,7 @@ import { StringEnum } from "@earendil-works/pi-ai";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { Container, Text, truncateToWidth } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
+import { TodoOverlay } from "./overlay";
 import {
 	applyTodoAction,
 	createTodoIdFactory,
@@ -144,6 +145,25 @@ export default function todoExtension(pi: ExtensionAPI) {
 			const text = context.lastComponent instanceof Text ? context.lastComponent : new Text("", 0, 0);
 			text.setText(context.isError ? theme.fg("error", value) : value);
 			return text;
+		},
+	});
+
+	pi.registerCommand("todo", {
+		description: "Show all todos and their full info",
+		handler: async (_args, ctx) => {
+			if (ctx.mode !== "tui") {
+				ctx.ui.notify("/todo requires interactive mode", "error");
+				return;
+			}
+			await ctx.ui.custom(
+				(tui, theme, _keybindings, done) => new TodoOverlay({
+					getItems: () => items,
+					theme,
+					requestRender: () => tui.requestRender(),
+					done,
+				}),
+				{ overlay: true, overlayOptions: { width: "100%", maxHeight: 22, anchor: "bottom-center", margin: 0 } },
+			);
 		},
 	});
 }
