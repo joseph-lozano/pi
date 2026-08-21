@@ -148,6 +148,7 @@ describe("extension state", () => {
 		const messages = [toolResult("old", "old".repeat(1_000)), user("tail ".repeat(4_000))];
 		const ctx = {
 			cwd: "/repo",
+			getContextUsage: () => ({ tokens: 100_000, contextWindow: 272_000, percent: 36.8 }),
 			sessionManager: { buildSessionContext: () => ({ messages }) },
 			ui: { notify: (message: string) => notifications.push(message) },
 		};
@@ -163,7 +164,7 @@ describe("extension state", () => {
 		]);
 	});
 
-	test("continues with compaction when the shaken context is still over 50%", async () => {
+	test("continues with native compaction when shake cannot restore 125k", async () => {
 		const handlers = new Map<string, (event: any, ctx: any) => unknown>();
 		const notifications: string[] = [];
 		const pi = {
@@ -179,7 +180,7 @@ describe("extension state", () => {
 			{ reason: "threshold" },
 			{
 				cwd: "/repo",
-				getContextUsage: () => ({ tokens: 80_000, contextWindow: 100_000, percent: 80 }),
+				getContextUsage: () => ({ tokens: 140_000, contextWindow: 272_000, percent: 51.5 }),
 				sessionManager: {
 					buildSessionContext: () => ({
 						messages: [toolResult("old", "old".repeat(1_000)), user("tail ".repeat(4_000))],
@@ -191,7 +192,7 @@ describe("extension state", () => {
 
 		expect(result).toBeUndefined();
 		expect(notifications).toContain(
-			"Context is still over 50% after automatic shake; continuing with compaction.",
+			"Automatic shake could not restore the 125k smart-zone target; continuing with compaction.",
 		);
 	});
 
@@ -238,6 +239,7 @@ describe("extension state", () => {
 			{ reason: "overflow", willRetry: true },
 			{
 				cwd: "/repo",
+				getContextUsage: () => ({ tokens: 100_000, contextWindow: 272_000, percent: 36.8 }),
 				sessionManager: {
 					buildSessionContext: () => ({ messages }),
 					getBranch: () => branch,
@@ -268,7 +270,7 @@ describe("extension state", () => {
 		expect(JSON.stringify(rewritten.messages)).not.toContain("original");
 	});
 
-	test("still cancels automatic compaction when there is nothing to shake", async () => {
+	test("allows native compaction when there is nothing to shake and usage is unknown", async () => {
 		const handlers = new Map<string, (event: any, ctx: any) => unknown>();
 		const notifications: string[] = [];
 		const pi = {
@@ -289,8 +291,140 @@ describe("extension state", () => {
 			},
 		);
 
-		expect(result).toEqual({ cancel: true });
-		expect(notifications).toEqual(["There was nothing eligible to shake."]);
+		expect(result).toBeUndefined();
+		expect(notifications).toEqual([
+			"There was nothing eligible to shake.",
+			"Automatic shake could not restore the 125k smart-zone target; continuing with compaction.",
+		]);
+	});
+
+	test("proactively shakes at 150k and does not compact after restoring 125k", async () => {
+		const handlers = new Map<string, (event: any, ctx: any) => unknown>();
+		const appended: unknown[] = [];
+		let compactCalls = 0;
+		const pi = {
+			on(name: string, handler: (event: any, ctx: any) => unknown) {
+				handlers.set(name, handler);
+			},
+			registerCommand() {},
+			appendEntry(_type: string, data: unknown) {
+				appended.push(data);
+			},
+		};
+		shakeExtension(pi as never);
+
+		const messages = [toolResult("old", "old".repeat(40_000)), user("tail ".repeat(4_000))];
+		const ctx = {
+			cwd: "/repo",
+			getContextUsage: () => ({ tokens: 150_000, contextWindow: 272_000, percent: 55.1 }),
+			ui: { notify() {} },
+			compact() {
+				compactCalls++;
+			},
+		};
+
+		const rewritten = await handlers.get("context")?.({ messages }, ctx) as { messages: AgentMessage[] };
+		await handlers.get("agent_settled")?.({}, ctx);
+
+		expect(appended).toEqual([{ version: 2, toolCallIds: ["old"] }]);
+		expect(JSON.stringify(rewritten.messages)).not.toContain("oldold");
+		expect(compactCalls).toBe(0);
+	});
+
+	test("queues one compaction when a 150k shake remains above 125k", async () => {
+		const handlers = new Map<string, (event: any, ctx: any) => unknown>();
+		const notifications: string[] = [];
+		let compactCalls = 0;
+		const pi = {
+			on(name: string, handler: (event: any, ctx: any) => unknown) {
+				handlers.set(name, handler);
+			},
+			registerCommand() {},
+			appendEntry() {},
+		};
+		shakeExtension(pi as never);
+
+		const messages = [toolResult("old", "old".repeat(10_000)), user("tail ".repeat(4_000))];
+		const ctx = {
+			cwd: "/repo",
+			getContextUsage: () => ({ tokens: 150_000, contextWindow: 272_000, percent: 55.1 }),
+			ui: { notify: (message: string) => notifications.push(message) },
+			compact() {
+				compactCalls++;
+			},
+		};
+
+		await handlers.get("context")?.({ messages }, ctx);
+		await handlers.get("context")?.({ messages }, ctx);
+		expect(compactCalls).toBe(0);
+
+		await handlers.get("agent_settled")?.({}, ctx);
+		await handlers.get("agent_settled")?.({}, ctx);
+
+		expect(compactCalls).toBe(1);
+		expect(notifications).toContain(
+			"Automatic shake left context above 125k; compaction is queued for the end of the run.",
+		);
+	});
+
+	test("clears queued smart-zone compaction after another compaction completes", async () => {
+		const handlers = new Map<string, (event: any, ctx: any) => unknown>();
+		let compactCalls = 0;
+		const pi = {
+			on(name: string, handler: (event: any, ctx: any) => unknown) {
+				handlers.set(name, handler);
+			},
+			registerCommand() {},
+			appendEntry() {},
+		};
+		shakeExtension(pi as never);
+
+		const ctx = {
+			cwd: "/repo",
+			getContextUsage: () => ({ tokens: 150_000, contextWindow: 272_000, percent: 55.1 }),
+			ui: { notify() {} },
+			compact() {
+				compactCalls++;
+			},
+		};
+		await handlers.get("context")?.(
+			{ messages: [toolResult("old", "old".repeat(10_000)), user("tail ".repeat(4_000))] },
+			ctx,
+		);
+		await handlers.get("session_compact")?.({}, ctx);
+		await handlers.get("agent_settled")?.({}, ctx);
+
+		expect(compactCalls).toBe(0);
+	});
+
+	test("clears queued smart-zone compaction when navigating the session tree", async () => {
+		const handlers = new Map<string, (event: any, ctx: any) => unknown>();
+		let compactCalls = 0;
+		const pi = {
+			on(name: string, handler: (event: any, ctx: any) => unknown) {
+				handlers.set(name, handler);
+			},
+			registerCommand() {},
+			appendEntry() {},
+		};
+		shakeExtension(pi as never);
+
+		const ctx = {
+			cwd: "/repo",
+			getContextUsage: () => ({ tokens: 150_000, contextWindow: 272_000, percent: 55.1 }),
+			ui: { notify() {} },
+			compact() {
+				compactCalls++;
+			},
+		};
+		await handlers.get("context")?.(
+			{ messages: [toolResult("old", "old".repeat(10_000)), user("tail ".repeat(4_000))] },
+			ctx,
+		);
+		await handlers.get("session_tree")?.({}, { sessionManager: { getBranch: () => [] } });
+		await handlers.get("agent_settled")?.({}, ctx);
+
+		expect(compactCalls).toBe(0);
 	});
 
 	test("restores the active branch after session-tree navigation", async () => {

@@ -9,7 +9,8 @@ const STATE_TYPE = "shake-state";
 const STATE_VERSION = 2;
 const PROTECTED_TAIL_TOKENS = 4_000;
 const CHARS_PER_TOKEN = 4;
-const COMPACT_AFTER_SHAKE_PERCENT = 50;
+const SHAKE_AT_TOKENS = 150_000;
+const COMPACT_ABOVE_TOKENS_AFTER_SHAKE = 125_000;
 
 interface PersistedShakeState {
 	version: number;
@@ -182,9 +183,11 @@ export default function shakeExtension(pi: ExtensionAPI) {
 	let shakenToolCallIds = new Set<string>();
 	let protectedReadPaths = new Set<string>();
 	let pendingOverflowRetry: PendingOverflowRetry | undefined;
+	let pendingSmartZoneCompaction = false;
 
 	const restoreFromBranch = (ctx: { sessionManager: { getBranch(): ReadonlyArray<unknown> } }) => {
 		shakenToolCallIds = restoreState(ctx.sessionManager.getBranch());
+		pendingSmartZoneCompaction = false;
 	};
 
 	const applyShake = (
@@ -228,6 +231,10 @@ export default function shakeExtension(pi: ExtensionAPI) {
 		restoreFromBranch(ctx);
 	});
 
+	pi.on("session_compact", () => {
+		pendingSmartZoneCompaction = false;
+	});
+
 	pi.on("before_agent_start", (event) => {
 		protectedReadPaths = new Set((event.systemPromptOptions.skills ?? []).map((skill) => skill.filePath));
 	});
@@ -240,11 +247,10 @@ export default function shakeExtension(pi: ExtensionAPI) {
 		const resultingTokens = usage?.tokens === null || usage?.tokens === undefined
 			? undefined
 			: Math.max(0, usage.tokens - selection.approxTokensRemoved);
-		const shouldCompact = resultingTokens !== undefined &&
-			resultingTokens / usage!.contextWindow * 100 > COMPACT_AFTER_SHAKE_PERCENT;
 
-		if (shouldCompact) {
-			ctx.ui.notify("Context is still over 50% after automatic shake; continuing with compaction.", "info");
+		if (resultingTokens === undefined || resultingTokens > COMPACT_ABOVE_TOKENS_AFTER_SHAKE) {
+			pendingSmartZoneCompaction = false;
+			ctx.ui.notify("Automatic shake could not restore the 125k smart-zone target; continuing with compaction.", "info");
 			return;
 		}
 
@@ -261,9 +267,17 @@ export default function shakeExtension(pi: ExtensionAPI) {
 		return { cancel: true };
 	});
 
-	pi.on("agent_settled", () => {
-		if (!pendingOverflowRetry) return;
-		pi.sendUserMessage("/shake-overflow-retry", { expandPromptTemplates: true });
+	pi.on("agent_settled", (_event, ctx) => {
+		if (pendingOverflowRetry) {
+			pi.sendUserMessage("/shake-overflow-retry", { expandPromptTemplates: true });
+			return;
+		}
+		if (!pendingSmartZoneCompaction) return;
+		pendingSmartZoneCompaction = false;
+		ctx.ui.notify("Compacting because automatic shake could not restore the 125k smart-zone target.", "info");
+		ctx.compact({
+			onError: (error) => ctx.ui.notify(`Smart-zone compaction failed: ${error.message}`, "error"),
+		});
 	});
 
 	pi.registerCommand("shake-overflow-retry", {
@@ -308,7 +322,22 @@ export default function shakeExtension(pi: ExtensionAPI) {
 		},
 	});
 
-	pi.on("context", (event) => {
+	pi.on("context", (event, ctx) => {
+		const usage = ctx.getContextUsage?.();
+		if (
+			!pendingSmartZoneCompaction &&
+			usage?.tokens !== null &&
+			usage?.tokens !== undefined &&
+			usage.tokens >= SHAKE_AT_TOKENS
+		) {
+			const selection = applyShake(event.messages, ctx, true);
+			const resultingTokens = Math.max(0, usage.tokens - selection.approxTokensRemoved);
+			if (resultingTokens > COMPACT_ABOVE_TOKENS_AFTER_SHAKE) {
+				pendingSmartZoneCompaction = true;
+				ctx.ui.notify("Automatic shake left context above 125k; compaction is queued for the end of the run.", "info");
+			}
+		}
+
 		if (shakenToolCallIds.size === 0) return;
 		return { messages: rewriteShakenToolResults(event.messages, shakenToolCallIds) };
 	});
