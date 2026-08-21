@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# PLANNOTATOR_BROWSER hook: ask the Pi extension to publish this port via a managed job.
+set -euo pipefail
+
+url="${1:?expected the Plannotator URL as the first argument}"
+request_file="${PLANNOTATOR_TAILSCALE_REQUEST_FILE:?request file is not configured}"
+
+if [[ "${url}" =~ ^https?://[^:/]+:([0-9]+)(/.*)?$ ]]; then
+  port="${BASH_REMATCH[1]}"
+else
+  exit 1
+fi
+
+mkdir -p "$(dirname "${request_file}")"
+printf '%s:%s\n' "$(date +%s%N)-$$" "${port}" > "${request_file}"
