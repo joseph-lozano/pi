@@ -1,6 +1,7 @@
 export const TODO_ENTRY_TYPE = "todo-state";
 export const MAX_TODO_ITEMS = 50;
-export const MAX_TODO_TEXT = 160;
+export const MAX_TODO_TEXT = 2000;
+export const MAX_TODO_DISPLAY_NAME = 80;
 export const MAX_TODO_NOTE = 160;
 
 export type TodoStatus = "pending" | "active" | "done" | "skipped";
@@ -8,23 +9,28 @@ export type TodoStatus = "pending" | "active" | "done" | "skipped";
 export interface TodoItem {
 	id: string;
 	text: string;
+	displayName?: string;
 	status: TodoStatus;
 	parentId?: string;
 	note?: string;
 }
 
-export interface TodoSeed {
+export interface TodoChildSeed {
 	text: string;
-	children?: string[];
+	displayName?: string;
+}
+
+export interface TodoSeed extends TodoChildSeed {
+	children?: Array<string | TodoChildSeed>;
 }
 
 export type TodoAction =
 	| { action: "get" }
 	| { action: "set"; items?: TodoSeed[] }
-	| { action: "add"; text?: string; parentId?: string; children?: string[] }
+	| { action: "add"; text?: string; displayName?: string; parentId?: string; children?: Array<string | TodoChildSeed> }
 	| { action: "update"; id?: string; status?: TodoStatus; note?: string }
 	| { action: "move"; id?: string; beforeId?: string; afterId?: string }
-	| { action: "rename"; id?: string; text?: string }
+	| { action: "rename"; id?: string; text?: string; displayName?: string }
 	| { action: "remove"; id?: string }
 	| { action: "clear" };
 
@@ -49,6 +55,33 @@ function cleanText(value: string, label: "text" | "note"): string {
 	return cleaned;
 }
 
+function cleanDisplayName(value: string | undefined): string | undefined {
+	if (value === undefined) return undefined;
+	const cleaned = value.trim();
+	if (!cleaned) return undefined;
+	if (cleaned.length > MAX_TODO_DISPLAY_NAME) {
+		throw new Error(`todo displayName cannot exceed ${MAX_TODO_DISPLAY_NAME} characters`);
+	}
+	return cleaned;
+}
+
+function presentation(textValue: string, displayValue?: string): { text: string; displayName?: string } {
+	const text = cleanText(textValue, "text");
+	const displayName = cleanDisplayName(displayValue);
+	if (text.length > MAX_TODO_DISPLAY_NAME && !displayName) {
+		throw new Error(`todo text over ${MAX_TODO_DISPLAY_NAME} characters requires displayName`);
+	}
+	return { text, ...(displayName ? { displayName } : {}) };
+}
+
+function childSeed(seed: string | TodoChildSeed): TodoChildSeed {
+	return typeof seed === "string" ? { text: seed } : seed;
+}
+
+export function todoDisplayText(item: TodoItem): string {
+	return item.displayName ?? item.text;
+}
+
 function validateStructure(items: TodoItem[]): void {
 	if (items.length > MAX_TODO_ITEMS) throw new Error(`todo cannot exceed ${MAX_TODO_ITEMS} items`);
 	const seen = new Map<string, TodoItem>();
@@ -56,7 +89,7 @@ function validateStructure(items: TodoItem[]): void {
 	for (const item of items) {
 		if (!ID_PATTERN.test(item.id)) throw new Error(`invalid todo id: ${item.id}`);
 		if (seen.has(item.id)) throw new Error(`duplicate todo id: ${item.id}`);
-		cleanText(item.text, "text");
+		presentation(item.text, item.displayName);
 		if (item.note !== undefined) cleanText(item.note, "note");
 		if (item.parentId) {
 			const parent = seen.get(item.parentId);
@@ -75,14 +108,16 @@ function parseItems(value: unknown): TodoItem[] | undefined {
 	const items: TodoItem[] = [];
 	for (const [index, item] of value.entries()) {
 		if (!item || typeof item !== "object") return undefined;
-		const candidate = item as { id?: unknown; text?: unknown; status?: unknown; parentId?: unknown; note?: unknown };
+		const candidate = item as { id?: unknown; text?: unknown; displayName?: unknown; status?: unknown; parentId?: unknown; note?: unknown };
 		if (typeof candidate.text !== "string" || !isTodoStatus(candidate.status)) return undefined;
 		if (candidate.id !== undefined && typeof candidate.id !== "string") return undefined;
+		if (candidate.displayName !== undefined && typeof candidate.displayName !== "string") return undefined;
 		if (candidate.parentId !== undefined && typeof candidate.parentId !== "string") return undefined;
 		if (candidate.note !== undefined && typeof candidate.note !== "string") return undefined;
 		items.push({
 			id: candidate.id ?? `step-${index + 1}`,
 			text: candidate.text,
+			...(candidate.displayName ? { displayName: candidate.displayName } : {}),
 			status: candidate.status,
 			...(candidate.parentId ? { parentId: candidate.parentId } : {}),
 			...(candidate.note ? { note: candidate.note } : {}),
@@ -140,20 +175,22 @@ export function applyTodoAction(items: TodoItem[], action: TodoAction, nextId: (
 	if (action.action === "rename") {
 		if (!action.id?.trim()) throw new Error("todo rename requires id");
 		if (action.text === undefined) throw new Error("todo rename requires text");
-		if (!items.some((item) => item.id === action.id)) throw new Error(`unknown todo id: ${action.id}`);
-		const text = cleanText(action.text, "text");
-		return items.map((item) => item.id === action.id ? { ...item, text } : item);
+		const existing = items.find((item) => item.id === action.id);
+		if (!existing) throw new Error(`unknown todo id: ${action.id}`);
+		const renamed = presentation(action.text, action.displayName === undefined ? existing.displayName : action.displayName);
+		return items.map((item) => item.id === action.id ? { ...item, ...renamed } : item);
 	}
 	if (action.action === "set") {
 		if (!action.items?.length) throw new Error("todo set requires at least one item");
 		const next: TodoItem[] = [];
 		for (const seed of action.items) {
-			const parent: TodoItem = { id: allocateId(next, nextId), text: cleanText(seed.text, "text"), status: "pending" };
+			const parent: TodoItem = { id: allocateId(next, nextId), ...presentation(seed.text, seed.displayName), status: "pending" };
 			next.push(parent);
-			for (const childText of seed.children ?? []) {
+			for (const rawChild of seed.children ?? []) {
+				const child = childSeed(rawChild);
 				next.push({
 					id: allocateId(next, nextId),
-					text: cleanText(childText, "text"),
+					...presentation(child.text, child.displayName),
 					status: "pending",
 					parentId: parent.id,
 				});
@@ -167,16 +204,17 @@ export function applyTodoAction(items: TodoItem[], action: TodoAction, nextId: (
 		if (action.parentId && action.children?.length) throw new Error("a subtask cannot have children");
 		const added: TodoItem = {
 			id: allocateId(items, nextId),
-			text: cleanText(action.text, "text"),
+			...presentation(action.text, action.displayName),
 			status: "pending",
 			...(action.parentId?.trim() ? { parentId: action.parentId.trim() } : {}),
 		};
 		if (!added.parentId) {
 			const next = [...items, added];
-			for (const childText of action.children ?? []) {
+			for (const rawChild of action.children ?? []) {
+				const child = childSeed(rawChild);
 				next.push({
 					id: allocateId(next, nextId),
-					text: cleanText(childText, "text"),
+					...presentation(child.text, child.displayName),
 					status: "pending",
 					parentId: added.id,
 				});

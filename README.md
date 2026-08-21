@@ -108,14 +108,19 @@ The `todo` tool keeps a minimal branch-local checklist with `pending`, `active`,
 restored on reload, resume, or tree navigation, and injected into each agent
 turn so workflow steps remain visible after compaction. A persistent widget
 above the editor shows progress and the current checklist; clearing the list
-hides it. Items receive collision-checked `todo_<time>_<sequence>` IDs. `set`
-accepts object seeds (`{ text, children? }`) to create a parent and children
-atomically; `add` can attach a one-level subtask to an existing top-level
-`parentId`. `update`, `rename`, and `remove` address items by ID; removing a
+hides it. Items receive collision-checked `todo_<time>_<sequence>` IDs for agent
+tool operations, but the human widget does not show them. `text` is the full
+agent-visible instruction and may contain up to 2,000 characters. The widget
+uses an optional human-facing `displayName`, limited to 80 characters; new items
+with text longer than 80 characters must provide one. `set` accepts object seeds
+(`{ text, displayName?, children? }`) to create a parent and children atomically;
+long child text uses `{ text, displayName }`. `add` can attach a one-level
+subtask to an existing top-level `parentId`. `update`, `rename`, and `remove` address items by ID; removing a
 parent also removes its subtasks. A parent cannot be marked done or skipped
 until every subtask is closed. `move` places an item before or after another ID
 and adopts the anchor's level; top-level items carry their subtasks as a block.
-Lists are limited to 50 items and text/notes to 160 characters. Actions are
+Lists are limited to 50 items, full text to 2,000 characters, display names to
+80, and notes to 160. Actions are
 `get`, `set`, `add`, `update`, `rename`, `move`, `remove`, and `clear`; tool
 calls use a compact one-line renderer. Large lists show a terminal-width-
 bounded widget window around the active or first pending item.

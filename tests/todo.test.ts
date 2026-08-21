@@ -2,12 +2,15 @@ import { describe, expect, test } from "bun:test";
 import {
 	applyTodoAction,
 	createTodoIdFactory,
+	MAX_TODO_DISPLAY_NAME,
 	MAX_TODO_ITEMS,
+	MAX_TODO_TEXT,
 	renderTodos,
 	restoreTodos,
 	selectTodoWindow,
 	TODO_ENTRY_TYPE,
 	todoContext,
+	todoDisplayText,
 	type TodoItem,
 } from "../extensions/todo/state";
 
@@ -109,10 +112,30 @@ describe("todo state", () => {
 		const nextId = createTodoIdFactory(() => 789);
 		expect(() => applyTodoAction([], { action: "set", items: [] }, nextId)).toThrow("at least one");
 		expect(() => applyTodoAction([], { action: "set", items: Array.from({ length: MAX_TODO_ITEMS + 1 }, (_, i) => ({ text: `Step ${i}` })) }, nextId)).toThrow("cannot exceed");
-		expect(() => applyTodoAction([], { action: "set", items: [{ text: "x".repeat(161) }] }, nextId)).toThrow("cannot exceed");
+		expect(() => applyTodoAction([], { action: "set", items: [{ text: "x".repeat(MAX_TODO_DISPLAY_NAME + 1) }] }, nextId)).toThrow("requires displayName");
+		expect(() => applyTodoAction([], { action: "set", items: [{ text: "x".repeat(MAX_TODO_TEXT + 1), displayName: "Bounded" }] }, nextId)).toThrow("cannot exceed");
+		expect(() => applyTodoAction([], { action: "set", items: [{ text: "Long label", displayName: "x".repeat(MAX_TODO_DISPLAY_NAME + 1) }] }, nextId)).toThrow("displayName cannot exceed");
 		expect(() => applyTodoAction(initial, { action: "add", text: "Child", parentId: "todo_missing_1" }, nextId)).toThrow("unknown todo parent");
 		expect(() => applyTodoAction(initial, { action: "update", id: "todo_missing_1", status: "done" }, nextId)).toThrow("unknown todo id");
 		expect(() => applyTodoAction(initial, { action: "update", id: "todo_a_1" }, nextId)).toThrow("requires status");
+	});
+
+	test("keeps full agent text while exposing a bounded human display name", () => {
+		const nextId = createTodoIdFactory(() => 800);
+		const fullText = "Explain the exact verification mechanism and preserve enough detail for the agent to resume after compaction.";
+		const items = applyTodoAction([], {
+			action: "set",
+			items: [{
+				text: fullText,
+				displayName: "Explain verification mechanism",
+				children: [{ text: `${fullText} Child detail.`, displayName: "Verify child detail" }],
+			}],
+		}, nextId);
+		expect(items[0].text).toBe(fullText);
+		expect(todoDisplayText(items[0])).toBe("Explain verification mechanism");
+		expect(todoDisplayText(items[1])).toBe("Verify child detail");
+		expect(renderTodos(items)).toContain(fullText);
+		expect(renderTodos(items)).toContain("todo_m8_1");
 	});
 
 	test("restores only contiguous hierarchies and migrates index-era items", () => {

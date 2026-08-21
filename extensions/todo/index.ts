@@ -5,6 +5,7 @@ import { Type } from "typebox";
 import {
 	applyTodoAction,
 	createTodoIdFactory,
+	MAX_TODO_DISPLAY_NAME,
 	MAX_TODO_ITEMS,
 	MAX_TODO_NOTE,
 	MAX_TODO_TEXT,
@@ -13,6 +14,7 @@ import {
 	selectTodoWindow,
 	TODO_ENTRY_TYPE,
 	todoContext,
+	todoDisplayText,
 	type TodoAction,
 	type TodoItem,
 } from "./state";
@@ -37,20 +39,20 @@ export default function todoExtension(pi: ExtensionAPI) {
 				if (start > 0) lines.push(theme.fg("dim", `… ${start} above`));
 				for (const item of visible) {
 					const indent = item.parentId ? "  " : "";
-					const id = theme.fg("dim", `${item.id} `);
+					const display = todoDisplayText(item);
 					const note = item.note ? theme.fg("dim", ` (${item.note})`) : "";
 					switch (item.status) {
 						case "active":
-							lines.push(`${indent}${theme.fg("accent", "> ")}${id}${theme.fg("text", item.text)}${note}`);
+							lines.push(`${indent}${theme.fg("accent", "> ")}${theme.fg("text", display)}${note}`);
 							break;
 						case "done":
-							lines.push(`${indent}${theme.fg("success", "✓ ")}${id}${theme.fg("muted", theme.strikethrough(item.text))}${note}`);
+							lines.push(`${indent}${theme.fg("success", "✓ ")}${theme.fg("muted", theme.strikethrough(display))}${note}`);
 							break;
 						case "skipped":
-							lines.push(`${indent}${theme.fg("warning", "- ")}${id}${theme.fg("muted", item.text)}${note}`);
+							lines.push(`${indent}${theme.fg("warning", "- ")}${theme.fg("muted", display)}${note}`);
 							break;
 						case "pending":
-							lines.push(`${indent}${theme.fg("dim", "○ ")}${id}${theme.fg("muted", item.text)}${note}`);
+							lines.push(`${indent}${theme.fg("dim", "○ ")}${theme.fg("muted", display)}${note}`);
 							break;
 					}
 				}
@@ -78,18 +80,32 @@ export default function todoExtension(pi: ExtensionAPI) {
 	pi.registerTool({
 		name: "todo",
 		label: "Todo",
-		description: "Maintain the current session's persisted checklist. Items receive generated IDs. Add one-level subtasks with parentId; rename, move, or remove items by ID. Removing a parent also removes its subtasks. Parents cannot be closed until all subtasks are done or skipped. Use for multi-step work that must survive background jobs, compaction, reload, or resume.",
+		description: "Maintain the current session's persisted checklist. Full item text is agent-visible and may be up to 2,000 characters. Human-facing displayName is limited to 80 characters and is required when text exceeds 80. Items receive generated IDs for updates but IDs are hidden from the human widget. Add one-level subtasks with parentId; rename, move, or remove items by ID. Removing a parent also removes its subtasks. Parents cannot be closed until all subtasks are done or skipped.",
 		promptSnippet: "Get or update the session's persisted multi-step checklist",
 		parameters: Type.Object({
 			action: StringEnum(["get", "set", "add", "update", "move", "rename", "remove", "clear"] as const),
 			items: Type.Optional(Type.Array(Type.Object({
 				text: Type.String({ maxLength: MAX_TODO_TEXT }),
-				children: Type.Optional(Type.Array(Type.String({ maxLength: MAX_TODO_TEXT }), { maxItems: MAX_TODO_ITEMS })),
-			}), { maxItems: MAX_TODO_ITEMS, description: "Top-level seeds for set; children create subtasks atomically" })),
+				displayName: Type.Optional(Type.String({ maxLength: MAX_TODO_DISPLAY_NAME })),
+				children: Type.Optional(Type.Array(Type.Union([
+					Type.String({ maxLength: MAX_TODO_TEXT }),
+					Type.Object({
+						text: Type.String({ maxLength: MAX_TODO_TEXT }),
+						displayName: Type.Optional(Type.String({ maxLength: MAX_TODO_DISPLAY_NAME })),
+					}),
+				]), { maxItems: MAX_TODO_ITEMS })),
+			}), { maxItems: MAX_TODO_ITEMS, description: "Top-level seeds for set; text over 80 characters requires displayName; children create subtasks atomically" })),
 			id: Type.Optional(Type.String({ maxLength: 64, description: "Generated todo ID for update, rename, move, or remove" })),
-			text: Type.Optional(Type.String({ maxLength: MAX_TODO_TEXT, description: "Item text for add or rename" })),
+			text: Type.Optional(Type.String({ maxLength: MAX_TODO_TEXT, description: "Full agent-visible item text for add or rename; text over 80 characters requires displayName" })),
+			displayName: Type.Optional(Type.String({ maxLength: MAX_TODO_DISPLAY_NAME, description: "Human-facing widget label, required when text exceeds 80 characters" })),
 			parentId: Type.Optional(Type.String({ maxLength: 64, description: "Existing top-level todo ID when adding a subtask" })),
-			children: Type.Optional(Type.Array(Type.String({ maxLength: MAX_TODO_TEXT }), { maxItems: MAX_TODO_ITEMS, description: "Subtask texts when adding a new top-level item" })),
+			children: Type.Optional(Type.Array(Type.Union([
+				Type.String({ maxLength: MAX_TODO_TEXT }),
+				Type.Object({
+					text: Type.String({ maxLength: MAX_TODO_TEXT }),
+					displayName: Type.Optional(Type.String({ maxLength: MAX_TODO_DISPLAY_NAME })),
+				}),
+			]), { maxItems: MAX_TODO_ITEMS, description: "Subtasks; use an object with displayName when text exceeds 80 characters" })),
 			beforeId: Type.Optional(Type.String({ maxLength: 64, description: "Move before this ID; its parent determines the moved item's level" })),
 			afterId: Type.Optional(Type.String({ maxLength: 64, description: "Move after this ID; its parent determines the moved item's level" })),
 			status: Type.Optional(StringEnum(["pending", "active", "done", "skipped"] as const)),
