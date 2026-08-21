@@ -5,7 +5,7 @@ import { jobIdentity } from "./worker";
 import type { JobManager } from "./manager";
 import type { JobRecord } from "./types";
 
-export type OverlayResult = { action: "log"; path: string } | undefined;
+export type OverlayResult = { action: "log"; id: string; path: string } | undefined;
 
 export class BackgroundJobsOverlay {
 	private selected = 0;
@@ -50,7 +50,7 @@ export class BackgroundJobsOverlay {
 				this.manager.dismiss(job.id, this.sessionId);
 				this.selected = Math.min(this.selected, Math.max(0, this.visibleJobs().length - 1));
 			}
-			if (data === "l") return this.done({ action: "log", path: job.logPath });
+			if (data === "l") return this.done({ action: "log", id: job.id, path: job.logPath });
 		}
 		this.requestRender();
 	}

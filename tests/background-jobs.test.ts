@@ -4,6 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { buildPiArgs, JobManager, shouldPreserveJobsOnShutdown } from "../extensions/background-jobs/manager";
 import { elapsed, formatCompletionBatch } from "../extensions/background-jobs/format";
+import { addedRenderedRows } from "../extensions/background-jobs/log-lines";
+import { wheelDirection } from "../extensions/background-jobs/mouse";
 import { PiJsonProjector } from "../extensions/background-jobs/pi-json";
 import { jobIdentity, resolveWorkerRuntime } from "../extensions/background-jobs/worker";
 import type { JobRecord, JobSpec } from "../extensions/background-jobs/types";
@@ -177,6 +179,22 @@ describe("Pi JSON projection", () => {
 		expect(completed.status).toBe("completed");
 		expect(completed.progress).toMatchObject({ recentToolOutput: "tool result", recentAssistantText: "finished", turns: 1, usage: { totalTokens: 5 } });
 		expect(readFileSync(completed.logPath, "utf8")).toContain("tool_execution_start");
+	});
+});
+
+describe("job log overlay", () => {
+	test("recognizes SGR mouse wheel events", () => {
+		expect(wheelDirection("\x1b[<64;20;5M")).toBe(-1);
+		expect(wheelDirection("\x1b[<65;20;5M")).toBe(1);
+		expect(wheelDirection("\x1b[<0;20;5M")).toBeUndefined();
+		expect(wheelDirection("j")).toBeUndefined();
+	});
+
+	test("preserves a paused viewport across partial-line transitions", () => {
+		expect(addedRenderedRows(false, 0, true)).toBe(1);
+		expect(addedRenderedRows(true, 1, false)).toBe(0);
+		expect(addedRenderedRows(true, 1, true)).toBe(1);
+		expect(addedRenderedRows(false, 2, false)).toBe(2);
 	});
 });
 

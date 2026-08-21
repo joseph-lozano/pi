@@ -4,6 +4,7 @@ import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-a
 import { Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 import { formatCompletionBatch, formatJob } from "./format";
+import { JobLogOverlay } from "./log-overlay";
 import { getBackgroundJobManager, shouldPreserveJobsOnShutdown } from "./manager";
 import { BackgroundJobsOverlay } from "./overlay";
 import { jobIdentity, resolveWorkerRuntime } from "./worker";
@@ -210,13 +211,16 @@ export default function backgroundJobsExtension(pi: ExtensionAPI) {
 				return;
 			}
 			const id = ctx.sessionManager.getSessionId();
-			const result = await ctx.ui.custom(
-				(tui, theme, _keybindings, done) => new BackgroundJobsOverlay(manager, id, theme, () => tui.requestRender(), done),
-				{ overlay: true, overlayOptions: { width: "100%", maxHeight: 22, anchor: "bottom-center", margin: 0 } },
-			);
-			if (result?.action === "log") {
-				ctx.ui.setEditorText(result.path);
-				ctx.ui.notify(`Log path copied to editor: ${result.path}`, "info");
+			while (true) {
+				const result = await ctx.ui.custom(
+					(tui, theme, _keybindings, done) => new BackgroundJobsOverlay(manager, id, theme, () => tui.requestRender(), done),
+					{ overlay: true, overlayOptions: { width: "100%", maxHeight: 22, anchor: "bottom-center", margin: 0 } },
+				);
+				if (result?.action !== "log") break;
+				await ctx.ui.custom<void>(
+					(tui, theme, _keybindings, done) => new JobLogOverlay(tui, theme, result.id, result.path, done),
+					{ overlay: true, overlayOptions: { width: "100%", maxHeight: "100%", anchor: "center", margin: 0 } },
+				);
 			}
 		},
 	});
