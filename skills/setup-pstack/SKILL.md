@@ -4,7 +4,7 @@ description: Explain or modify the static pstack model-role policy in this Pi co
 disable-model-invocation: true
 ---
 
-> **Pi runtime:** Before applying this skill, read [`../PSTACK_PI.md`](../PSTACK_PI.md).
+> **Pi runtime:** Before applying this skill, read [`../pstack-pi/SKILL.md`](../pstack-pi/SKILL.md).
 
 # Pstack model policy
 

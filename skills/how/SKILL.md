@@ -3,7 +3,7 @@ name: how
 description: "Use for \"how does X work\", code walkthroughs before changing something, and placement / ownership / layering questions (\"where should this live\", \"which package owns this\", \"is this the right layer\"). Explains subsystem architecture, runtime flow, onboarding mental models. Can critique architecture. Use why for motivation."
 ---
 
-> **Pi runtime:** Before applying this skill, read [`../PSTACK_PI.md`](../PSTACK_PI.md). That adapter overrides Cursor-specific Task, todo, model, loop, path, and external-action instructions.
+> **Pi runtime:** Before applying this skill, read [`../pstack-pi/SKILL.md`](../pstack-pi/SKILL.md). That adapter overrides Cursor-specific Task, todo, model, loop, path, and external-action instructions.
 
 # How
 

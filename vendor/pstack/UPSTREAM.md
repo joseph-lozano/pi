@@ -25,6 +25,7 @@ Excluded deliberately:
 - `automations/`, including Benny
 - the bundled `scripts/watch-pr/` implementation; this port uses managed `gh pr checks --watch` jobs
 - the Commander-based `scripts/orch/` CLI; local nested Orchestrate remains deferred
+- the Cursor transcript-scanning worktree audit script; cleanup is proposal-only and Herdr-aware
 - Cursor cloud-agent runtime behavior
 
 The active skill copies are adapted for Pi and may differ from upstream.

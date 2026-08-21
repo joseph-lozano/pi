@@ -4,7 +4,7 @@ description: "Apply to any non-trivial work, not just bulk work: edits, migratio
 disable-model-invocation: true
 ---
 
-> **Pi runtime:** Before applying this skill, read [`../PSTACK_PI.md`](../PSTACK_PI.md). That adapter overrides Cursor-specific Task, todo, model, loop, path, and external-action instructions.
+> **Pi runtime:** Before applying this skill, read [`../pstack-pi/SKILL.md`](../pstack-pi/SKILL.md). That adapter overrides Cursor-specific Task, todo, model, loop, path, and external-action instructions.
 # Build the Lever
 
 When the work isn't trivial, build the tool that does it instead of doing it by hand.

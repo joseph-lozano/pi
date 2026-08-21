@@ -4,7 +4,7 @@ description: "Apply when facing a novel UI interaction or architectural decision
 disable-model-invocation: true
 ---
 
-> **Pi runtime:** Before applying this skill, read [`../PSTACK_PI.md`](../PSTACK_PI.md). That adapter overrides Cursor-specific Task, todo, model, loop, path, and external-action instructions.
+> **Pi runtime:** Before applying this skill, read [`../pstack-pi/SKILL.md`](../pstack-pi/SKILL.md). That adapter overrides Cursor-specific Task, todo, model, loop, path, and external-action instructions.
 
 # Exhaust the Design Space
 

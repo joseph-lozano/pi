@@ -4,7 +4,7 @@ description: "Use for \"automate me\", \"create/update/refresh my -mode skill\",
 disable-model-invocation: true
 ---
 
-> **Pi runtime:** Before applying this skill, read [`../PSTACK_PI.md`](../PSTACK_PI.md). That adapter overrides Cursor-specific Task, todo, model, loop, path, and external-action instructions.
+> **Pi runtime:** Before applying this skill, read [`../pstack-pi/SKILL.md`](../pstack-pi/SKILL.md). That adapter overrides Cursor-specific Task, todo, model, loop, path, and external-action instructions.
 
 # Automate me
 

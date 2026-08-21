@@ -4,7 +4,7 @@ description: "Generate a project-local verification skill that drives your app t
 disable-model-invocation: true
 ---
 
-> **Pi runtime:** Before applying this skill, read [`../PSTACK_PI.md`](../PSTACK_PI.md). That adapter overrides Cursor-specific Task, todo, model, loop, path, and external-action instructions.
+> **Pi runtime:** Before applying this skill, read [`../pstack-pi/SKILL.md`](../pstack-pi/SKILL.md). That adapter overrides Cursor-specific Task, todo, model, loop, path, and external-action instructions.
 
 # Create a verification skill
 
@@ -12,7 +12,7 @@ Every serious project needs a scripted way to drive the real app and prove behav
 
 ## 1. Interview the repo, not the user
 
-Answer these from the codebase and only ask the user what you cannot observe:
+Read [`references/surfaces.md`](references/surfaces.md), then answer these from the codebase and only ask the user what you cannot observe:
 
 - **Surface:** what does a user actually touch? A web UI, a CLI/TUI, a desktop app, an API, a mobile app, a library? A repo can have several; pick the primary one and note the rest.
 - **Run:** how does the app start locally? Prefer the repo's own documented dev command (package scripts, Makefile, README quickstart). Note ports, env vars, seed data, auth.
@@ -43,4 +43,4 @@ Run its own instructions end to end once: launch, doctor, drive ONE mapped featu
 
 ## 5. Offer the maintenance loop
 
-Point the user at `/maintain-verification-skill` for keeping the map honest as the app changes. Suggest a cadence only if they ask.
+Point the user at `/skill:maintain-verification-skill` for keeping the map honest as the app changes. Suggest a cadence only if they ask.

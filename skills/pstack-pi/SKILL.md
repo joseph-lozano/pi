@@ -1,3 +1,9 @@
+---
+name: pstack-pi
+description: Runtime adapter for vendored pstack skills on this Pi configuration. Referenced by pstack skills; do not invoke directly.
+disable-model-invocation: true
+---
+
 # Pstack on Pi
 
 Read this adapter before applying any vendored pstack skill. It overrides Cursor-specific runtime instructions while preserving the skill's engineering workflow.

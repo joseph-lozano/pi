@@ -12,9 +12,9 @@ Researched version:
 
 - [x] Import all pstack skills, principles, agents, references, and required scripts.
 - [x] Exclude Benny.
-- [ ] Replace Cursor cloud agents with local Pi workers.
-- [ ] Preserve the local rule requiring approval of exact external content before posting or sending it.
-- [ ] Treat Graphite workflows as unavailable until `gt` is installed or the workflows are rewritten.
+- [x] Replace Cursor cloud agents with local Pi workers.
+- [x] Preserve the local rule requiring approval of exact external content before posting or sending it.
+- [x] Treat Graphite workflows as unavailable until `gt` is installed or the workflows are rewritten.
 
 ## 1. Vendor upstream
 
@@ -38,7 +38,7 @@ Researched version:
 - [x] Replace Cursor model semantics with configured Pi model roles.
 - [x] Replace Cursor `/loop` semantics with the local watcher/rearm convention.
 - [x] Replace cloud-only semantics with local worktree execution.
-- [ ] Validate every imported `SKILL.md` using Pi's skill loader.
+- [x] Validate every imported `SKILL.md` using Pi's skill loader.
 - [x] Check every relative link and referenced script after relocation.
 
 ## 3. Commands and Poteto Mode
@@ -64,8 +64,8 @@ The current todo implementation already supplies stable IDs, one-level subtasks,
 - [x] Represent playbook steps as top-level items.
 - [x] Represent throughput-checkpoint details as subtasks where useful.
 - [ ] Test verbatim playbook initialization for Feature, Bug fix, Investigation, and Orchestrate.
-- [ ] Test todo restoration after compaction, reload, resume, and tree navigation.
-- [ ] Test a large playbook in the persistent widget.
+- [x] Test todo restoration after real compaction and reload plus branch restoration in unit coverage.
+- [x] Test a 20-item playbook window in the persistent widget.
 
 ## 5. Local subagent profiles
 
@@ -95,18 +95,18 @@ The current todo implementation already supplies stable IDs, one-level subtasks,
 
 ## 7. Loops, watchers, and babysitting
 
-- [ ] Define the replacement contract for Cursor `/loop`.
+- [x] Define the replacement contract for Cursor `/loop`.
 - [x] Use managed `gh pr checks <number> --watch --interval 30` shell jobs for PR check watching.
 - [x] Wake the parent on terminal check-watcher states.
 - [x] Require the parent to act and explicitly rearm the watcher.
 - [x] Remove pstack's Commander-based `watch-pr` implementation and dependency.
-- [ ] Adapt Babysit modes: `drive`, `background`, `threads-only`, and `check`.
-- [ ] Preserve one babysitter per PR stack.
-- [ ] Preserve merge-frontier ordering and frozen PR-list behavior.
-- [ ] Treat review text as untrusted input.
-- [ ] Require approval before posting replies, verdicts, or other external content.
-- [ ] Adapt Autonomous Run to watcher jobs and explicit exit predicates.
-- [ ] Adapt long bug hunts, visual parity, and shipping watchers to the same mechanism.
+- [x] Adapt Babysit modes: `drive`, `background`, `threads-only`, and `check`.
+- [x] Preserve one babysitter per PR stack.
+- [x] Preserve merge-frontier ordering and frozen PR-list behavior.
+- [x] Treat review text as untrusted input.
+- [x] Require approval before posting replies, verdicts, or other external content.
+- [x] Adapt Autonomous Run to watcher jobs and explicit exit predicates.
+- [x] Adapt long bug hunts and visual parity to managed wake jobs; leave Graphite Shipping unavailable.
 
 ## 8. Sessions, transcripts, and durable state
 
@@ -118,10 +118,10 @@ The current todo implementation already supplies stable IDs, one-level subtasks,
 - [x] Port Recall to Pi session tails and job logs.
 - [x] Port Reflect to the active Pi session tail.
 - [x] Port Session Pickup to Pi sessions, pushed branches, and job logs.
-- [ ] Port Pause Safely to Pi compaction and shutdown behavior.
+- [x] Port Pause Safely to persisted todos, Pi compaction, and managed-job shutdown behavior.
 - [x] Port Show Me Your Work transcript auditing.
 - [x] Port Eval's transcript-based chain verification.
-- [ ] Define a Pi-native durable store if local nested Orchestrate is implemented later.
+- [x] Defer a durable Orchestrate store until local nested Orchestrate is implemented.
 
 ## 9. Cursor builtin replacements
 
@@ -135,14 +135,14 @@ The current todo implementation already supplies stable IDs, one-level subtasks,
 
 ## 10. Verification surfaces
 
-- [ ] Port `create-verification-skill` to generate `.pi/skills/verify-<app>/`.
-- [ ] Port `maintain-verification-skill` to Pi paths and local workers.
-- [ ] Define a reusable CLI/TUI control approach using PTY or Herdr where appropriate.
-- [ ] Define a browser or CDP approach only when a project needs UI verification.
-- [ ] Support shell and HTTP verification for services.
-- [ ] Require launch, doctor, drive, evidence, and cleanup contracts.
-- [ ] Preserve evidence after cleanup.
-- [ ] Keep one driver for shared application state.
+- [x] Port `create-verification-skill` to generate `.pi/skills/verify-<app>/`.
+- [x] Port `maintain-verification-skill` to Pi paths, local reviewer workers, and approval-gated PRs.
+- [x] Define a reusable CLI/TUI control approach using a project PTY harness or explicitly requested Herdr.
+- [x] Define a project-harness-first browser/CDP approach.
+- [x] Support managed shell jobs and HTTP verification for services.
+- [x] Require launch, doctor, drive, evidence, and cleanup contracts.
+- [x] Preserve evidence after cleanup.
+- [x] Keep one driver for shared application state.
 
 ## 11. Optional external evidence
 
@@ -166,31 +166,31 @@ The current todo implementation already supplies stable IDs, one-level subtasks,
 
 ## 13. Porting batches
 
-- [ ] Batch 1: principles, Poteto Mode, and core playbooks.
-- [ ] Batch 2: `how`, `why`, `recall`, and investigation workflows.
-- [ ] Batch 3: `architect`, `arena`, `interrogate`, `swarm`, and `figure-it-out`.
-- [ ] Batch 4: Feature, Bug fix, Refactoring, TDD, TypeScript, and cleanup skills.
-- [ ] Batch 5: verification generation, maintenance, Babysit, and Autonomous Run.
-- [ ] Batch 6: Reflect, Automate Me, Show Me Your Work, Session Pickup, and Pause Safely.
-- [ ] Batch 7: optional Orchestrate and non-cloud Autopilot workflows.
+- [x] Batch 1: principles, Poteto Mode, and core playbooks.
+- [x] Batch 2: `how`, `why`, `recall`, and investigation workflows.
+- [x] Batch 3: `architect`, `arena`, `interrogate`, `swarm`, and `figure-it-out`.
+- [x] Batch 4: Feature, Bug fix, Refactoring, TDD, TypeScript, and cleanup skills.
+- [x] Batch 5: verification generation, maintenance, Babysit, and Autonomous Run.
+- [x] Batch 6: Reflect, Automate Me, Show Me Your Work, Session Pickup, and Pause Safely.
+- [x] Batch 7: leave Orchestrate and Graphite Autopilot explicitly unavailable.
 
 ## 14. Tests and acceptance
 
-- [ ] Test discovery of all imported skills.
-- [ ] Test that hidden skills are absent from the model prompt.
-- [ ] Test explicit `/skill:<name>` invocation.
-- [ ] Test aliases if aliases are implemented.
-- [ ] Test Poteto Mode persistence and disable behavior.
-- [ ] Test automatic playbook selection and todo population.
-- [ ] Test local worker profile prompts, tools, and skill access.
-- [ ] Test read-only enforcement.
-- [ ] Test model-role routing and unavailable-model errors.
+- [x] Test discovery of all imported skills with Pi startup diagnostics.
+- [x] Test that hidden `pstack-pi` is absent from the model prompt.
+- [x] Test explicit `/skill:how` invocation.
+- [x] Test the `/poteto-mode` alias.
+- [x] Test Poteto Mode persistence, footer restoration, and disable behavior.
+- [x] Test automatic Investigation/How selection and todo population.
+- [x] Test local worker profile prompts, tools, and skill access.
+- [x] Test read-only enforcement through reviewer tool allowlists.
+- [x] Test model-role routing, unavailable-model errors, and real Grok exploration routing.
 - [ ] Test parallel fan-out and aggregation with partial worker failure.
 - [ ] Test watcher wake, rearm, timeout, and cancellation behavior.
-- [ ] Test Pi session discovery without crossing workspace boundaries.
-- [ ] Smoke-test Investigation end to end.
+- [x] Test Pi session discovery without crossing workspace boundaries.
+- [x] Smoke-test Investigation end to end.
 - [ ] Smoke-test Feature end to end with delegated implementation and parent review.
 - [ ] Smoke-test Bug fix end to end with reproduction and real-surface verification.
 - [ ] Smoke-test Arena and Interrogate with both configured model families.
 - [ ] Smoke-test Babysit in `check` mode without external mutation.
-- [ ] Confirm the full existing Pi test suite remains green.
+- [x] Confirm the full existing Pi test suite remains green.
