@@ -81,6 +81,38 @@ describe("JobManager lifecycle and delivery", () => {
 		expect(stopped.delivery).toBe("none");
 	});
 
+	test("wakes, rearms, and cancels a managed watcher", async () => {
+		const manager = new JobManager({ logRoot: root(), stopGraceMs: 50 });
+		const first = manager.start(owner, shellSpec("sleep 0.01; printf event", { wake: "always" }));
+		const event = await manager.wait(first.id, owner.sessionId, undefined, false);
+		expect(event.status).toBe("completed");
+		expect(event.delivery).toBe("pending");
+		const timed = manager.start(owner, shellSpec("timeout 0.02 sleep 1", { wake: "on-failure" }));
+		const timedOut = await manager.wait(timed.id, owner.sessionId, undefined, false);
+		expect(timedOut.status).toBe("failed");
+		expect(timedOut.delivery).toBe("pending");
+		const rearmed = manager.start(owner, shellSpec("sleep 30", { wake: "always" }));
+		expect(rearmed.id).not.toBe(first.id);
+		const cancelled = await manager.stop(rearmed.id, owner.sessionId);
+		expect(cancelled.status).toBe("stopped");
+		expect(cancelled.delivery).toBe("none");
+	});
+
+	test("aggregates parallel completion when one worker fails", async () => {
+		const manager = new JobManager({ logRoot: root() });
+		const good = manager.start(owner, shellSpec("sleep 0.02; printf candidate-good"));
+		const bad = manager.start(owner, shellSpec("sleep 0.01; printf candidate-bad; exit 9"));
+		const completed = await Promise.all([
+			manager.wait(good.id, owner.sessionId, undefined, false),
+			manager.wait(bad.id, owner.sessionId, undefined, false),
+		]);
+		expect(completed.map((job) => job.status).sort()).toEqual(["completed", "failed"]);
+		const summary = formatCompletionBatch(completed);
+		expect(summary).toContain("candidate-good");
+		expect(summary).toContain("candidate-bad");
+		expect(summary).toContain("failed");
+	});
+
 	test("stops the detached process group", async () => {
 		if (process.platform === "win32") return;
 		const directory = root();

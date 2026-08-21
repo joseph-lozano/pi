@@ -63,7 +63,7 @@ The current todo implementation already supplies stable IDs, one-level subtasks,
 - [x] Update imported pstack instructions to use the local `todo` action schema.
 - [x] Represent playbook steps as top-level items.
 - [x] Represent throughput-checkpoint details as subtasks where useful.
-- [ ] Test verbatim playbook initialization for Feature, Bug fix, Investigation, and Orchestrate.
+- [x] Test verbatim playbook initialization for Feature, Bug fix, and Investigation; confirm Orchestrate is explicitly unavailable.
 - [x] Test todo restoration after real compaction and reload plus branch restoration in unit coverage.
 - [x] Test a 20-item playbook window in the persistent widget.
 
@@ -185,12 +185,12 @@ The current todo implementation already supplies stable IDs, one-level subtasks,
 - [x] Test local worker profile prompts, tools, and skill access.
 - [x] Test read-only enforcement through reviewer tool allowlists.
 - [x] Test model-role routing, unavailable-model errors, and real Grok exploration routing.
-- [ ] Test parallel fan-out and aggregation with partial worker failure.
-- [ ] Test watcher wake, rearm, timeout, and cancellation behavior.
+- [x] Test parallel fan-out and aggregation with partial worker failure.
+- [x] Test watcher wake, rearm, timeout, and cancellation behavior.
 - [x] Test Pi session discovery without crossing workspace boundaries.
 - [x] Smoke-test Investigation end to end.
-- [ ] Smoke-test Feature end to end with delegated implementation and parent review.
-- [ ] Smoke-test Bug fix end to end with reproduction and real-surface verification.
-- [ ] Smoke-test Arena and Interrogate with both configured model families.
-- [ ] Smoke-test Babysit in `check` mode without external mutation.
+- [x] Smoke-test Feature end to end with delegated implementation and parent review.
+- [x] Smoke-test Bug fix end to end with reproduction and real-surface verification.
+- [x] Smoke-test Arena and Interrogate with both configured model families.
+- [x] Smoke-test Babysit in `check` mode without external mutation.
 - [x] Confirm the full existing Pi test suite remains green.
