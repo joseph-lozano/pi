@@ -163,6 +163,38 @@ describe("extension state", () => {
 		]);
 	});
 
+	test("continues with compaction when the shaken context is still over 50%", async () => {
+		const handlers = new Map<string, (event: any, ctx: any) => unknown>();
+		const notifications: string[] = [];
+		const pi = {
+			on(name: string, handler: (event: any, ctx: any) => unknown) {
+				handlers.set(name, handler);
+			},
+			registerCommand() {},
+			appendEntry() {},
+		};
+		shakeExtension(pi as never);
+
+		const result = await handlers.get("session_before_compact")?.(
+			{ reason: "threshold" },
+			{
+				cwd: "/repo",
+				getContextUsage: () => ({ tokens: 80_000, contextWindow: 100_000, percent: 80 }),
+				sessionManager: {
+					buildSessionContext: () => ({
+						messages: [toolResult("old", "old".repeat(1_000)), user("tail ".repeat(4_000))],
+					}),
+				},
+				ui: { notify: (message: string) => notifications.push(message) },
+			},
+		);
+
+		expect(result).toBeUndefined();
+		expect(notifications).toContain(
+			"Context is still over 50% after automatic shake; continuing with compaction.",
+		);
+	});
+
 	test("retries a recoverable overflow after settling and preserves shake state across navigation", async () => {
 		const handlers = new Map<string, (event: any, ctx: any) => unknown>();
 		const commands = new Map<string, (args: string, ctx: any) => Promise<void>>();
@@ -258,9 +290,7 @@ describe("extension state", () => {
 		);
 
 		expect(result).toEqual({ cancel: true });
-		expect(notifications).toEqual([
-			"Automatic compaction skipped, but there was nothing eligible to shake. Use /compact if more room is needed.",
-		]);
+		expect(notifications).toEqual(["There was nothing eligible to shake."]);
 	});
 
 	test("restores the active branch after session-tree navigation", async () => {

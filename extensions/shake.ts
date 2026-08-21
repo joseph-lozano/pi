@@ -9,6 +9,7 @@ const STATE_TYPE = "shake-state";
 const STATE_VERSION = 2;
 const PROTECTED_TAIL_TOKENS = 4_000;
 const CHARS_PER_TOKEN = 4;
+const COMPACT_AFTER_SHAKE_PERCENT = 50;
 
 interface PersistedShakeState {
 	version: number;
@@ -199,7 +200,7 @@ export default function shakeExtension(pi: ExtensionAPI) {
 		if (selection.toolCallIds.length === 0) {
 			ctx.ui.notify(
 				automatic
-					? "Automatic compaction skipped, but there was nothing eligible to shake. Use /compact if more room is needed."
+					? "There was nothing eligible to shake."
 					: "Nothing to shake. The recent context tail is protected.",
 				automatic ? "warning" : "info",
 			);
@@ -213,7 +214,7 @@ export default function shakeExtension(pi: ExtensionAPI) {
 		} satisfies PersistedShakeState);
 
 		ctx.ui.notify(
-			`${automatic ? "Auto-shook" : "Shook"} ${selection.toolCallIds.length} tool result${selection.toolCallIds.length === 1 ? "" : "s"} (~${selection.approxTokensRemoved} tokens removed from future agent-turn context).${automatic ? " Automatic compaction was skipped." : ""}`,
+			`${automatic ? "Auto-shook" : "Shook"} ${selection.toolCallIds.length} tool result${selection.toolCallIds.length === 1 ? "" : "s"} (~${selection.approxTokensRemoved} tokens removed from future agent-turn context).`,
 			"info",
 		);
 		return selection;
@@ -235,6 +236,17 @@ export default function shakeExtension(pi: ExtensionAPI) {
 		if (event.reason === "manual") return;
 		const messages = ctx.sessionManager.buildSessionContext().messages;
 		const selection = applyShake(messages, ctx, true);
+		const usage = ctx.getContextUsage?.();
+		const resultingTokens = usage?.tokens === null || usage?.tokens === undefined
+			? undefined
+			: Math.max(0, usage.tokens - selection.approxTokensRemoved);
+		const shouldCompact = resultingTokens !== undefined &&
+			resultingTokens / usage!.contextWindow * 100 > COMPACT_AFTER_SHAKE_PERCENT;
+
+		if (shouldCompact) {
+			ctx.ui.notify("Context is still over 50% after automatic shake; continuing with compaction.", "info");
+			return;
+		}
 
 		if (event.reason === "overflow" && event.willRetry && selection.toolCallIds.length > 0) {
 			const userEntry = findLastUserEntry(ctx.sessionManager.getBranch());
