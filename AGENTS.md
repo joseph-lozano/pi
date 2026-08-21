@@ -8,6 +8,8 @@
 
 Before complex tool calls, especially bash/shell, state in one sentence what you're about to do and why.
 
+Render each tool invocation as one compact row in collapsed mode, truncating as needed; reserve detailed arguments and results for expanded mode.
+
 ## Background jobs
 
 Use the `job` tool for managed subprocesses and requests to delegate, use a subagent, or run work in the background. Start a Pi worker for delegated tasks, give it a task-fitting emoji, keep one writer per cwd, and block only when the next step needs the result.

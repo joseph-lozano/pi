@@ -1,6 +1,6 @@
 import { StringEnum } from "@earendil-works/pi-ai";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { Text, truncateToWidth } from "@earendil-works/pi-tui";
+import { Container, Text, truncateToWidth } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 import {
 	applyTodoAction,
@@ -134,6 +134,16 @@ export default function todoExtension(pi: ExtensionAPI) {
 			if (args.action === "rename") detail = ` ${args.id ?? "?"}`;
 			if (args.action === "remove") detail = ` ${args.id ?? "?"}`;
 			return new Text(theme.fg("toolTitle", theme.bold("todo")) + theme.fg("muted", ` ${args.action}${detail}`), 0, 0);
+		},
+		renderResult(result, { expanded }, theme, context) {
+			if (!expanded && !context.isError) return new Container();
+			const value = result.content
+				.filter((item): item is { type: "text"; text: string } => item.type === "text")
+				.map((item) => item.text)
+				.join("\n");
+			const text = context.lastComponent instanceof Text ? context.lastComponent : new Text("", 0, 0);
+			text.setText(context.isError ? theme.fg("error", value) : value);
+			return text;
 		},
 	});
 }

@@ -1,7 +1,7 @@
 import { resolve } from "node:path";
 import { StringEnum } from "@earendil-works/pi-ai";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { Text } from "@earendil-works/pi-tui";
+import { Container, Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 import { formatCompletionBatch, formatJob } from "./format";
 import { JobLogOverlay } from "./log-overlay";
@@ -223,9 +223,21 @@ export default function backgroundJobsExtension(pi: ExtensionAPI) {
 				throw error;
 			}
 		},
-		renderCall(args, theme) {
+		renderCall(args, theme, context) {
+			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
 			const emoji = args.emoji ? ` ${args.emoji}` : "";
-			return new Text(theme.fg("toolTitle", theme.bold(`job ${args.action}${emoji}`)) + (args.id ? ` ${theme.fg("accent", args.id)}` : ""), 0, 0);
+			text.setText(theme.fg("toolTitle", theme.bold(`job ${args.action}${emoji}`)) + (args.id ? ` ${theme.fg("accent", args.id)}` : ""));
+			return text;
+		},
+		renderResult(result, { expanded }, theme, context) {
+			if (!expanded && !context.isError) return new Container();
+			const value = result.content
+				.filter((item): item is { type: "text"; text: string } => item.type === "text")
+				.map((item) => item.text)
+				.join("\n");
+			const text = context.lastComponent instanceof Text ? context.lastComponent : new Text("", 0, 0);
+			text.setText(context.isError ? theme.fg("error", value) : value);
+			return text;
 		},
 	});
 
