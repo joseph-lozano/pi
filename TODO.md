@@ -10,22 +10,22 @@ Researched version:
 
 ## Scope
 
-- [ ] Import all pstack skills, principles, agents, references, and required scripts.
-- [ ] Exclude Benny.
+- [x] Import all pstack skills, principles, agents, references, and required scripts.
+- [x] Exclude Benny.
 - [ ] Replace Cursor cloud agents with local Pi workers.
 - [ ] Preserve the local rule requiring approval of exact external content before posting or sending it.
 - [ ] Treat Graphite workflows as unavailable until `gt` is installed or the workflows are rewritten.
 
 ## 1. Vendor upstream
 
-- [ ] Copy the 44 upstream skills with their references and scripts.
-- [ ] Copy all 21 principle skills.
-- [ ] Copy the `poteto-agent` and `Comment Sicko` agent prompts.
-- [ ] Copy the Poteto playbooks and bundled `watch-pr` and `orch` scripts.
-- [ ] Preserve the upstream MIT license.
-- [ ] Record the upstream commit in a provenance file.
-- [ ] Add a repeatable upstream-update procedure instead of relying on an undocumented copy.
-- [ ] Exclude `automations/benny/` from the imported package.
+- [x] Copy the 44 upstream skills with their references and scripts.
+- [x] Copy all 21 principle skills.
+- [x] Copy the `poteto-agent` and `Comment Sicko` agent prompts.
+- [x] Copy the Poteto playbooks and bundled `watch-pr` and `orch` scripts.
+- [x] Preserve the upstream MIT license.
+- [x] Record the upstream commit in a provenance file.
+- [x] Add a repeatable upstream-update procedure instead of relying on an undocumented copy.
+- [x] Exclude `automations/benny/` from the imported package.
 
 ## 2. Make skills native to Pi
 
