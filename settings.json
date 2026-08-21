@@ -9,7 +9,7 @@
     "npm:@plannotator/pi-extension"
   ],
   "enabledModels": [
-    "openai-codex/gpt-5.6-sol",
-    "xai/grok-4.6"
+    "openai-codex/gpt-5.6-sol:low",
+    "xai/grok-4.6:high"
   ]
 }
