@@ -36,8 +36,11 @@
         {
           "id": "x-preview-f-free",
           "name": "Ox Alpha Free",
+          "api": "openai-completions",
+          "baseUrl": "https://opencode.ai/zen/v1",
           "reasoning": true,
           "thinkingLevelMap": {
+            "off": null,
             "minimal": null,
             "low": "low",
             "medium": null,
